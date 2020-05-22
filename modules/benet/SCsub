@@ -1,0 +1,26 @@
+Import('env')
+Import('env_modules')
+
+# Thirdparty source files
+
+env_benet = env_modules.Clone()
+
+if env["builtin_enet"]: # builtin
+    thirdparty_dir = "#thirdparty/enet/"
+    thirdparty_sources = [
+        "callbacks.c",
+        "compress.c",
+        "host.c",
+        "list.c",
+        "packet.c",
+        "peer.c",
+        "protocol.c",
+        "godot.cpp"
+    ]
+    thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]
+
+#    env_benet.add_source_files(env.modules_sources, thirdparty_sources)
+    env_benet.Append(CPPPATH=[thirdparty_dir])
+    env_benet.Append(CPPFLAGS=["-DGODOT_ENET"])
+
+env_benet.add_source_files(env.modules_sources, "*.cpp")

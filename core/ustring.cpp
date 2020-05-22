@@ -3079,6 +3079,13 @@ String String::repeat(int p_count) const {
 	return new_string;
 }
 
+String String::lcut(int p_pos) {
+	String result = left(p_pos);
+	this->erase(0, p_pos);
+	return result;
+}
+
+
 String String::left(int p_pos) const {
 
 	if (p_pos <= 0)

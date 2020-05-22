@@ -126,6 +126,10 @@ public:
 		INSTANCE_FROM_ID,
 		LEN,
 		IS_INSTANCE_VALID,
+		HEX,
+		GET_INT,
+		GET_FLOAT,
+		GET_STR,
 		FUNC_MAX
 	};
 

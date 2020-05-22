@@ -893,6 +893,14 @@ godot_string GDAPI godot_string_get_extension(const godot_string *p_self) {
 	return result;
 }
 
+godot_string GDAPI godot_string_lcut(godot_string *p_self, godot_int p_pos) {
+	String *self = (String *)p_self;
+	godot_string result;
+	memnew_placement(&result, String(self->lcut(p_pos)));
+
+	return result;
+}
+
 godot_string GDAPI godot_string_left(const godot_string *p_self, godot_int p_pos) {
 	const String *self = (const String *)p_self;
 	godot_string result;
