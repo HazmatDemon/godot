@@ -82,6 +82,8 @@ private:
 	bool ensure_selected_visible;
 	bool same_column_width;
 
+	bool center_items;
+
 	bool auto_height;
 	float auto_height_value;
 
@@ -189,6 +191,9 @@ public:
 
 	void set_same_column_width(bool p_enable);
 	bool is_same_column_width() const;
+
+	void set_center_items(bool p_enable);
+	bool is_center_items() const;
 
 	void set_max_text_lines(int p_lines);
 	int get_max_text_lines() const;

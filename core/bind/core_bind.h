@@ -32,6 +32,7 @@
 #define CORE_BIND_H
 
 #include "core/image.h"
+#include "core/utils.h"
 #include "core/io/compression.h"
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
@@ -829,4 +830,22 @@ public:
 	_JSON();
 };
 
+class _UTILS : public Object {
+	GDCLASS(_UTILS, Object);
+
+protected:
+	static void _bind_methods();
+	static _UTILS *singleton;
+
+public:
+	static _UTILS *get_singleton() { return singleton; }
+
+	String int_to_hex(int64_t number, int size);
+    int64_t hex_to_int(const String &hex);
+
+    double hex_to_float(const String &hex);
+    String float_to_hex(double number);
+
+	_UTILS();
+};
 #endif // CORE_BIND_H

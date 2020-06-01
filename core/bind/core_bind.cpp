@@ -3255,3 +3255,32 @@ _JSON *_JSON::singleton = NULL;
 _JSON::_JSON() {
 	singleton = this;
 }
+
+void _UTILS::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("int_to_hex", "number", "size"), &_UTILS::int_to_hex);
+	ClassDB::bind_method(D_METHOD("hex_to_int", "hex"), &_UTILS::hex_to_int);
+	ClassDB::bind_method(D_METHOD("hex_to_float", "hex"), &_UTILS::hex_to_float);
+	ClassDB::bind_method(D_METHOD("float_to_hex", "number"), &_UTILS::float_to_hex);
+}
+
+String _UTILS::int_to_hex(int64_t number, int size) {
+	return UTILS::int_to_hex(number, size);
+}
+
+int64_t _UTILS::hex_to_int(const String &hex) {
+	return UTILS::hex_to_int(hex);
+}
+
+double _UTILS::hex_to_float(const String &hex) {
+	return UTILS::hex_to_float(hex);
+}
+
+String _UTILS::float_to_hex(double number) {
+	return UTILS::float_to_hex(number);
+}
+
+_UTILS *_UTILS::singleton = NULL;
+
+_UTILS::_UTILS() {
+	singleton = this;
+}
