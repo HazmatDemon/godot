@@ -34,7 +34,7 @@ platform/android/java/lib/.cxx/
 *.Plo
 *.lo
 
-!modules/discord_sdk/lib/*
+!modules/discord_sdk/lib/*.lib
 
 # Libs generated files
 .deps/*
