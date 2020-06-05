@@ -3107,7 +3107,6 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 				current_block = p_block;
 				if (error_set)
 					return;
-				p_block->has_return = cf_while->body->has_return;
 				p_block->statements.push_back(cf_while);
 			} break;
 			case GDScriptTokenizer::TK_CF_FOR: {
@@ -3121,6 +3120,15 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 				IdentifierNode *id = alloc_node<IdentifierNode>();
 				id->name = tokenizer->get_token_identifier();
+
+				BlockNode *check_block = p_block;
+				while (check_block) {
+					if (check_block->variables.has(id->name)) {
+						_set_error("Variable \"" + String(id->name) + "\" already defined in the scope (at line " + itos(check_block->variables[id->name]->line) + ").");
+						return;
+					}
+					check_block = check_block->parent_block;
+				}
 
 				tokenizer->advance();
 
@@ -3240,7 +3248,6 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 				if (error_set)
 					return;
-				p_block->has_return = cf_for->body->has_return;
 				p_block->statements.push_back(cf_for);
 			} break;
 			case GDScriptTokenizer::TK_CF_CONTINUE: {
@@ -4094,6 +4101,14 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 				sig.name = tokenizer->get_token_identifier();
 				sig.emissions = 0;
 				sig.line = tokenizer->get_token_line();
+
+				for (int i = 0; i < current_class->_signals.size(); i++) {
+					if (current_class->_signals[i].name == sig.name) {
+						_set_error("The signal \"" + sig.name + "\" already exists in this class (at line: " + itos(current_class->_signals[i].line) + ").");
+						return;
+					}
+				}
+
 				tokenizer->advance();
 
 				if (tokenizer->get_token() == GDScriptTokenizer::TK_PARENTHESIS_OPEN) {
@@ -7247,6 +7262,7 @@ GDScriptParser::DataType GDScriptParser::_reduce_function_call_type(const Operat
 
 			DataType original_type = base_type;
 			bool is_initializer = callee_name == "new";
+			bool is_get_script = p_call->arguments[0]->type == Node::TYPE_SELF && callee_name == "get_script";
 			bool is_static = false;
 			bool valid = false;
 
@@ -7263,6 +7279,14 @@ GDScriptParser::DataType GDScriptParser::_reduce_function_call_type(const Operat
 				return_type.is_meta_type = false;
 
 				valid = true; // There's always an initializer, we can assume this is true
+			}
+
+			if (is_get_script) {
+				// get_script() can be considered a meta-type.
+				return_type.kind = DataType::CLASS;
+				return_type.class_type = static_cast<ClassNode *>(head);
+				return_type.is_meta_type = true;
+				valid = true;
 			}
 
 			if (!valid) {
@@ -7351,8 +7375,8 @@ GDScriptParser::DataType GDScriptParser::_reduce_function_call_type(const Operat
 		} else if (!_is_type_compatible(arg_types[i - arg_diff], par_type, true)) {
 			// Supertypes are acceptable for dynamic compliance
 			if (!_is_type_compatible(par_type, arg_types[i - arg_diff])) {
-				_set_error("At \"" + callee_name + "()\" call, argument " + itos(i - arg_diff + 1) + ". Assigned type (" +
-								   par_type.to_string() + ") doesn't match the function argument's type (" +
+				_set_error("At \"" + callee_name + "()\" call, argument " + itos(i - arg_diff + 1) + ". The passed argument's type (" +
+								   par_type.to_string() + ") doesn't match the function's expected argument type (" +
 								   arg_types[i - arg_diff].to_string() + ").",
 						p_call->line);
 				return DataType();
@@ -7955,6 +7979,47 @@ void GDScriptParser::_check_class_level_types(ClassNode *p_class) {
 		if (!found_getter && v.getter != StringName()) {
 			_set_error("The getter function isn't defined.", v.line);
 			return;
+		}
+	}
+
+	// Signals
+	DataType base = p_class->base_type;
+
+	while (base.kind == DataType::CLASS) {
+		ClassNode *base_class = base.class_type;
+		for (int i = 0; i < p_class->_signals.size(); i++) {
+			for (int j = 0; j < base_class->_signals.size(); j++) {
+				if (p_class->_signals[i].name == base_class->_signals[j].name) {
+					_set_error("The signal \"" + p_class->_signals[i].name + "\" already exists in a parent class.", p_class->_signals[i].line);
+					return;
+				}
+			}
+		}
+		base = base_class->base_type;
+	}
+
+	StringName native;
+	if (base.kind == DataType::GDSCRIPT || base.kind == DataType::SCRIPT) {
+		Ref<Script> scr = base.script_type;
+		if (scr.is_valid() && scr->is_valid()) {
+			native = scr->get_instance_base_type();
+			for (int i = 0; i < p_class->_signals.size(); i++) {
+				if (scr->has_script_signal(p_class->_signals[i].name)) {
+					_set_error("The signal \"" + p_class->_signals[i].name + "\" already exists in a parent class.", p_class->_signals[i].line);
+					return;
+				}
+			}
+		}
+	} else if (base.kind == DataType::NATIVE) {
+		native = base.native_type;
+	}
+
+	if (native != StringName()) {
+		for (int i = 0; i < p_class->_signals.size(); i++) {
+			if (ClassDB::has_signal(native, p_class->_signals[i].name)) {
+				_set_error("The signal \"" + p_class->_signals[i].name + "\" already exists in a parent class.", p_class->_signals[i].line);
+				return;
+			}
 		}
 	}
 

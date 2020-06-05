@@ -266,7 +266,7 @@ void Main::print_help(const char *p_binary) {
 	for (int i = 0; i < OS::get_singleton()->get_tablet_driver_count(); i++) {
 		if (i != 0)
 			OS::get_singleton()->print(", ");
-		OS::get_singleton()->print("'%s'", OS::get_singleton()->get_tablet_driver_name(i));
+		OS::get_singleton()->print("'%s'", OS::get_singleton()->get_tablet_driver_name(i).utf8().get_data());
 	}
 	OS::get_singleton()->print(") (Windows only).\n");
 	OS::get_singleton()->print("\n");
@@ -1554,7 +1554,11 @@ bool Main::start() {
 		print_line("Loading docs...");
 
 		for (int i = 0; i < _doc_data_class_path_count; i++) {
-			String path = doc_tool.plus_file(_doc_data_class_paths[i].path);
+			// Custom modules are always located by absolute path.
+			String path = _doc_data_class_paths[i].path;
+			if (path.is_rel_path()) {
+				path = doc_tool.plus_file(path);
+			}
 			String name = _doc_data_class_paths[i].name;
 			doc_data_classes[name] = path;
 			if (!checked_paths.has(path)) {
