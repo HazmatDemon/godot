@@ -6,7 +6,7 @@ env.add_source_files(env.modules_sources, "discord/*.cpp")
 env.add_source_files(env.modules_sources, "*.cpp")
 
 
-env.Append(LIBPATH=['#modules/discord_sdk/lib/'])
+env.Append(LIBPATH=['modules/discord_sdk/lib/'])
 env.Append(CPPPATH=['#modules/discord_sdk/discord/'])
 env.Append(LIBS=['discord_sdk'])
 

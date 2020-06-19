@@ -33,17 +33,10 @@ double UTILS::hex_to_float(const String &hex) {
 }
 
 String UTILS::str_to_hex(const String& str, int size = 2) {
-	String result;
-	for (int i = 0; i < str.length(); i++) {
-		result += int_to_hex(str[i], size);
-	}
-	return result;
+	String s("");
+	return s;
 }
 String UTILS::hex_to_str(const String& hex, int size = 2) {
-	String result;
-	for (int i = 0; i < hex.length(); i += size) {
-		CharType partial[2] = { hex_to_int(hex.substr(i, size)), 0 };
-		result += String(partial);
-	}
-	return result;
+	String s("");
+	return s;
 }
