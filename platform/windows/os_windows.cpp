@@ -255,6 +255,13 @@ void OS_Windows::initialize_core() {
 
 	process_map = memnew((Map<ProcessID, ProcessInfo>));
 
+	// Add current Godot PID to the list of known PIDs
+	ProcessInfo current_pi = {};
+	PROCESS_INFORMATION current_pi_pi = {};
+	current_pi.pi = current_pi_pi;
+	current_pi.pi.hProcess = GetCurrentProcess();
+	process_map->insert(GetCurrentProcessId(), current_pi);
+
 	IP_Unix::make_default();
 
 	cursor_shape = CURSOR_ARROW;
@@ -2538,12 +2545,29 @@ void OS_Windows::delay_usec(uint32_t p_usec) const {
 uint64_t OS_Windows::get_ticks_usec() const {
 
 	uint64_t ticks;
-	uint64_t time;
+
 	// This is the number of clock ticks since start
 	if (!QueryPerformanceCounter((LARGE_INTEGER *)&ticks))
 		ticks = (UINT64)timeGetTime();
+
 	// Divide by frequency to get the time in seconds
-	time = ticks * 1000000L / ticks_per_second;
+	// original calculation shown below is subject to overflow
+	// with high ticks_per_second and a number of days since the last reboot.
+	// time = ticks * 1000000L / ticks_per_second;
+
+	// we can prevent this by either using 128 bit math
+	// or separating into a calculation for seconds, and the fraction
+	uint64_t seconds = ticks / ticks_per_second;
+
+	// compiler will optimize these two into one divide
+	uint64_t leftover = ticks % ticks_per_second;
+
+	// remainder
+	uint64_t time = (leftover * 1000000L) / ticks_per_second;
+
+	// seconds
+	time += seconds * 1000000L;
+
 	// Subtract the time at game start to get
 	// the time since the game started
 	time -= ticks_start;
@@ -3239,6 +3263,101 @@ OS::LatinKeyboardVariant OS_Windows::get_latin_keyboard_variant() const {
 	}
 
 	return LATIN_KEYBOARD_QWERTY;
+}
+
+int OS_Windows::keyboard_get_layout_count() const {
+	return GetKeyboardLayoutList(0, NULL);
+}
+
+int OS_Windows::keyboard_get_current_layout() const {
+	HKL cur_layout = GetKeyboardLayout(0);
+
+	int layout_count = GetKeyboardLayoutList(0, NULL);
+	HKL *layouts = (HKL *)memalloc(layout_count * sizeof(HKL));
+	GetKeyboardLayoutList(layout_count, layouts);
+
+	for (int i = 0; i < layout_count; i++) {
+		if (cur_layout == layouts[i]) {
+			memfree(layouts);
+			return i;
+		}
+	}
+	memfree(layouts);
+	return -1;
+}
+
+void OS_Windows::keyboard_set_current_layout(int p_index) {
+	int layout_count = GetKeyboardLayoutList(0, NULL);
+
+	ERR_FAIL_INDEX(p_index, layout_count);
+
+	HKL *layouts = (HKL *)memalloc(layout_count * sizeof(HKL));
+	GetKeyboardLayoutList(layout_count, layouts);
+	ActivateKeyboardLayout(layouts[p_index], KLF_SETFORPROCESS);
+	memfree(layouts);
+}
+
+String OS_Windows::keyboard_get_layout_language(int p_index) const {
+	int layout_count = GetKeyboardLayoutList(0, NULL);
+
+	ERR_FAIL_INDEX_V(p_index, layout_count, "");
+
+	HKL *layouts = (HKL *)memalloc(layout_count * sizeof(HKL));
+	GetKeyboardLayoutList(layout_count, layouts);
+
+	wchar_t buf[LOCALE_NAME_MAX_LENGTH];
+	memset(buf, 0, LOCALE_NAME_MAX_LENGTH * sizeof(wchar_t));
+	LCIDToLocaleName(MAKELCID(LOWORD(layouts[p_index]), SORT_DEFAULT), buf, LOCALE_NAME_MAX_LENGTH, 0);
+
+	memfree(layouts);
+
+	return String(buf).substr(0, 2);
+}
+
+String _get_full_layout_name_from_registry(HKL p_layout) {
+	String id = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layouts\\" + String::num_int64((int64_t)p_layout, 16, false).lpad(8, "0");
+	String ret;
+
+	HKEY hkey;
+	wchar_t layout_text[1024];
+	memset(layout_text, 0, 1024 * sizeof(wchar_t));
+
+	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, (LPCWSTR)id.c_str(), 0, KEY_QUERY_VALUE, &hkey) != ERROR_SUCCESS) {
+		return ret;
+	}
+
+	DWORD buffer = 1024;
+	DWORD vtype = REG_SZ;
+	if (RegQueryValueExW(hkey, L"Layout Text", NULL, &vtype, (LPBYTE)layout_text, &buffer) == ERROR_SUCCESS) {
+		ret = String(layout_text);
+	}
+	RegCloseKey(hkey);
+	return ret;
+}
+
+String OS_Windows::keyboard_get_layout_name(int p_index) const {
+	int layout_count = GetKeyboardLayoutList(0, NULL);
+
+	ERR_FAIL_INDEX_V(p_index, layout_count, "");
+
+	HKL *layouts = (HKL *)memalloc(layout_count * sizeof(HKL));
+	GetKeyboardLayoutList(layout_count, layouts);
+
+	String ret = _get_full_layout_name_from_registry(layouts[p_index]); // Try reading full name from Windows registry, fallback to locale name if failed (e.g. on Wine).
+	if (ret == String()) {
+		wchar_t buf[LOCALE_NAME_MAX_LENGTH];
+		memset(buf, 0, LOCALE_NAME_MAX_LENGTH * sizeof(wchar_t));
+		LCIDToLocaleName(MAKELCID(LOWORD(layouts[p_index]), SORT_DEFAULT), buf, LOCALE_NAME_MAX_LENGTH, 0);
+
+		wchar_t name[1024];
+		memset(name, 0, 1024 * sizeof(wchar_t));
+		GetLocaleInfoEx(buf, LOCALE_SLOCALIZEDDISPLAYNAME, (LPWSTR)&name, 1024);
+
+		ret = String(name);
+	}
+	memfree(layouts);
+
+	return ret;
 }
 
 void OS_Windows::release_rendering_thread() {

@@ -394,18 +394,6 @@ bool ItemList::is_same_column_width() const {
 	return same_column_width;
 }
 
-void ItemList::set_center_items(bool p_enable) {
-
-	center_items = p_enable;
-	update();
-	shape_changed = true;
-}
-
-bool ItemList::is_center_items() const {
-
-	return center_items;
-}
-
 void ItemList::set_max_text_lines(int p_lines) {
 
 	ERR_FAIL_COND(p_lines < 1);
@@ -1100,6 +1088,7 @@ void ItemList::_notification(int p_what) {
 				Point2 pos = items[i].rect_cache.position + icon_ofs + base_ofs;
 
 				if (icon_mode == ICON_MODE_TOP) {
+
 					pos.x += Math::floor((items[i].rect_cache.size.width - icon_size.width) / 2);
 					pos.y += MIN(
 							Math::floor((items[i].rect_cache.size.height - icon_size.height) / 2),
@@ -1107,6 +1096,7 @@ void ItemList::_notification(int p_what) {
 					text_ofs.y = icon_size.height + icon_margin;
 					text_ofs.y += items[i].rect_cache.size.height - items[i].min_rect_cache.size.height;
 				} else {
+
 					pos.y += Math::floor((items[i].rect_cache.size.height - icon_size.height) / 2);
 					text_ofs.x = icon_size.width + icon_margin;
 				}
@@ -1182,8 +1172,6 @@ void ItemList::_notification(int p_what) {
 					text_ofs = text_ofs.floor();
 					text_ofs += base_ofs;
 					text_ofs += items[i].rect_cache.position;
-					//if (center_items)
-					//	text_ofs.x += (get_rect().size.x - font->get_string_size(items[i].text).x) / 2;
 
 					FontDrawer drawer(font, Color(1, 1, 1));
 					for (int j = 0; j < ss; j++) {
@@ -1213,10 +1201,6 @@ void ItemList::_notification(int p_what) {
 					text_ofs = text_ofs.floor();
 					text_ofs += base_ofs;
 					text_ofs += items[i].rect_cache.position;
-					if (center_items) {
-						items.write[i].icon_region.position.x += (get_rect().size.x - (items[i].icon_region.size.x + font->get_string_size(items[i].text).x)) / 2;
-						text_ofs.x += (get_rect().size.x - font->get_string_size(items[i].text).x) / 2;
-					}
 
 					draw_string(font, text_ofs, items[i].text, modulate, max_len + 1);
 				}
@@ -1523,9 +1507,6 @@ void ItemList::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_same_column_width", "enable"), &ItemList::set_same_column_width);
 	ClassDB::bind_method(D_METHOD("is_same_column_width"), &ItemList::is_same_column_width);
 
-	ClassDB::bind_method(D_METHOD("set_center_items", "enable"), &ItemList::set_center_items);
-	ClassDB::bind_method(D_METHOD("is_center_items"), &ItemList::is_center_items);
-
 	ClassDB::bind_method(D_METHOD("set_max_text_lines", "lines"), &ItemList::set_max_text_lines);
 	ClassDB::bind_method(D_METHOD("get_max_text_lines"), &ItemList::get_max_text_lines);
 
@@ -1577,7 +1558,6 @@ void ItemList::_bind_methods() {
 	ADD_GROUP("Columns", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_columns", PROPERTY_HINT_RANGE, "0,10,1,or_greater"), "set_max_columns", "get_max_columns");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "same_column_width"), "set_same_column_width", "is_same_column_width");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "center_items"), "set_center_items", "is_center_items");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "fixed_column_width", PROPERTY_HINT_RANGE, "0,100,1,or_greater"), "set_fixed_column_width", "get_fixed_column_width");
 	ADD_GROUP("Icon", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "icon_mode", PROPERTY_HINT_ENUM, "Top,Left"), "set_icon_mode", "get_icon_mode");
@@ -1610,7 +1590,6 @@ ItemList::ItemList() {
 
 	fixed_column_width = 0;
 	same_column_width = false;
-	center_items = false;
 	max_text_lines = 1;
 	max_columns = 1;
 	auto_height = false;

@@ -1,8 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "core/variant.h"
 #include <sstream>
+#include <iomanip>
+#include <iostream>
+#include <cwchar>
+
+#include "core/variant.h"
 
 class UTILS {
 
@@ -13,8 +17,6 @@ public:
     static double hex_to_float(const String &hex);
     static String float_to_hex(double number);
 
-	static String str_to_hex(const String &str, int size);
-	static String hex_to_str(const String &hex, int size);
 };
 
-#endif
+#endif // UTILS_H

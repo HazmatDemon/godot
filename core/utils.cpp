@@ -1,8 +1,4 @@
 #include "utils.h"
-#include <iomanip>
-#include <iostream>
-#include <cwchar>
-
 
 String UTILS::int_to_hex(int64_t number, int size = sizeof(int64_t) * 2) {
 	std::stringstream stream;
@@ -30,13 +26,4 @@ double UTILS::hex_to_float(const String &hex) {
 	stream << hex.utf8().ptr();
 	stream >> std::hex >> *reinterpret_cast<uint64_t *>(&result) >> result;
 	return result;
-}
-
-String UTILS::str_to_hex(const String& str, int size = 2) {
-	String s("");
-	return s;
-}
-String UTILS::hex_to_str(const String& hex, int size = 2) {
-	String s("");
-	return s;
 }

@@ -139,7 +139,6 @@ const char *GDScriptFunctions::get_func_name(Function p_func) {
 		"hex",
 		"get_int",
 		"get_float",
-		"get_str",
 	};
 
 	return _names[p_func];
@@ -1492,19 +1491,6 @@ void GDScriptFunctions::call(Function p_func, const Variant **p_args, int p_arg_
 				r_ret = UTILS::int_to_hex(u, size);
 			} else if (p_args[0]->get_type() == Variant::REAL) {
 				r_ret = UTILS::float_to_hex(*p_args[0]);
-			} else if (p_args[0]->get_type() == Variant::STRING) {
-				int size = 2;
-				if (p_arg_count == 2) {
-					if (p_args[1]->get_type() == Variant::INT) {
-						size = *p_args[1];
-					} else {
-						r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
-						r_error.argument = 1;
-						r_error.expected = Variant::INT;
-						r_ret = Variant();
-					}
-				}
-				r_ret = UTILS::str_to_hex(*p_args[0], size);
 			} else {
 				r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
 				r_error.argument = 0;
@@ -1529,39 +1515,6 @@ void GDScriptFunctions::call(Function p_func, const Variant **p_args, int p_arg_
 			if (p_args[0]->get_type() == Variant::STRING) {
 				String s = *p_args[0];
 				r_ret = UTILS::hex_to_float(s);
-			} else {
-				r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
-				r_error.argument = 0;
-				r_error.expected = Variant::STRING;
-				r_ret = Variant();
-			}
-		} break;
-		case GET_STR: {
-			if (p_arg_count < 1) {
-				r_error.error = Variant::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS;
-				r_error.argument = 1;
-				r_ret = Variant();
-				return;
-			}
-			if (p_arg_count > 2) {
-				r_error.error = Variant::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS;
-				r_error.argument = 2;
-				r_ret = Variant();
-				return;
-			}
-			if (p_args[0]->get_type() == Variant::STRING) {
-				int size = 2;
-				if (p_arg_count == 2) {
-					if (p_args[1]->get_type() == Variant::INT) {
-						size = *p_args[1];
-					} else {
-						r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
-						r_error.argument = 1;
-						r_error.expected = Variant::INT;
-						r_ret = Variant();
-					}
-				}
-				r_ret = UTILS::hex_to_str(*p_args[0], size);
 			} else {
 				r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
 				r_error.argument = 0;
@@ -1640,7 +1593,6 @@ bool GDScriptFunctions::is_deterministic(Function p_func) {
 		case HEX:
 		case GET_INT:
 		case GET_FLOAT:
-		case GET_STR:
 			// enable for debug only, otherwise not desirable - case GEN_RANGE:
 			return true;
 		default:
@@ -2191,11 +2143,6 @@ MethodInfo GDScriptFunctions::get_info(Function p_func) {
 		case GET_FLOAT: {
 			MethodInfo mi("get_float", PropertyInfo(Variant::STRING, "hex"));
 			mi.return_val.type = Variant::REAL;
-			return mi;
-		} break;
-		case GET_STR: {
-			MethodInfo mi("get_str", PropertyInfo(Variant::STRING, "hex"), PropertyInfo(Variant::INT, "size"));
-			mi.return_val.type = Variant::STRING;
 			return mi;
 		} break;
 		default: {

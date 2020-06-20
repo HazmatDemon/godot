@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+Import("env")
+
+
+env.add_source_files(env.modules_sources, "source/*.cpp")
+env.add_source_files(env.modules_sources, "*.cpp")
+
+if env["platform"] == "x11":
+	env.Append(CPPFLAGS=["-Llib"])
+
+env.Append(LIBPATH=['#modules/discord_game_sdk/lib/'])
+env.Append(LIBS=['discord_game_sdk'])
+
+
+
+
+
+

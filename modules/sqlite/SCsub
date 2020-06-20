@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+Import("env")
+Import("env_modules")
+
+env_sqlite = env_modules.Clone()
+
+sqlite_src = [
+    "sqlite3.c",
+    "spmemvfs.c"
+]
+
+thirdparty_dir = "#thirdparty/sqlite/"
+thirdparty_sources = [thirdparty_dir + file for file in sqlite_src]
+
+env_sqlite.Prepend(CPPPATH=['#thirdparty/sqlite/'])
+
+env_sqlite.add_source_files(env.modules_sources, thirdparty_sources)
+env_sqlite.add_source_files(env.modules_sources, "*.cpp")

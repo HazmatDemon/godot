@@ -1,1 +1,0 @@
-scons p=windows tools=yes bits=64 target=release_debug -j12 vs_proj=yes

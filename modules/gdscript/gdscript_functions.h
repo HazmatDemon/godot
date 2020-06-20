@@ -129,7 +129,6 @@ public:
 		HEX,
 		GET_INT,
 		GET_FLOAT,
-		GET_STR,
 		FUNC_MAX
 	};
 
