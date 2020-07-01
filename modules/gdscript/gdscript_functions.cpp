@@ -38,6 +38,7 @@
 #include "core/math/math_funcs.h"
 #include "core/os/os.h"
 #include "core/reference.h"
+#include "core/variant_call.cpp"
 #include "core/variant_parser.h"
 #include "gdscript.h"
 

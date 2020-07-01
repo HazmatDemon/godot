@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  godot_haiku.cpp                                                      */
+/*  id_handler.js                                                        */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,22 +28,36 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "main/main.h"
-#include "os_haiku.h"
+var IDHandler = /** @constructor */ function() {
 
-int main(int argc, char *argv[]) {
-	OS_Haiku os;
+	var ids = {};
+	var size = 0;
 
-	Error error = Main::setup(argv[0], argc - 1, &argv[1]);
-	if (error != OK) {
-		return 255;
+	this.has = function(id) {
+		return ids.hasOwnProperty(id);
 	}
 
-	if (Main::start()) {
-		os.run();
+	this.add = function(obj) {
+		size += 1;
+		var id = crypto.getRandomValues(new Int32Array(32))[0];
+		ids[id] = obj;
+		return id;
 	}
 
-	Main::cleanup();
+	this.get = function(id) {
+		return ids[id];
+	}
 
-	return os.get_exit_code();
-}
+	this.remove = function(id) {
+		size -= 1;
+		delete ids[id];
+	}
+
+	this.size = function() {
+		return size;
+	}
+
+	this.ids = ids;
+};
+
+Module.IDHandler = new IDHandler;
