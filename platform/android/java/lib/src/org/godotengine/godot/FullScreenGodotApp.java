@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  audio_driver_media_kit.h                                             */
+/*  FullScreenGodotApp.java                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,47 +28,53 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "servers/audio_server.h"
+package org.godotengine.godot;
 
-#ifdef MEDIA_KIT_ENABLED
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.KeyEvent;
 
-#include "core/os/mutex.h"
-#include "core/os/thread.h"
+import androidx.fragment.app.FragmentActivity;
 
-#include <kernel/image.h> // needed for image_id
+/**
+ * Base activity for Android apps intending to use Godot as the primary and only screen.
+ *
+ * It's also a reference implementation for how to setup and use the {@link Godot} fragment
+ * within an Android app.
+ */
+public abstract class FullScreenGodotApp extends FragmentActivity {
 
-#include <SoundPlayer.h>
+	protected Godot godotFragment;
 
-class AudioDriverMediaKit : public AudioDriver {
-	Mutex *mutex;
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.godot_app_layout);
+		godotFragment = new Godot();
+		getSupportFragmentManager().beginTransaction().replace(R.id.godot_fragment_container, godotFragment).setPrimaryNavigationFragment(godotFragment).commitNowAllowingStateLoss();
+	}
 
-	BSoundPlayer *player;
-	static int32_t *samples_in;
+	@Override
+	public void onNewIntent(Intent intent) {
+		if (godotFragment != null) {
+			godotFragment.onNewIntent(intent);
+		}
+	}
 
-	static void PlayBuffer(void *cookie, void *buffer, size_t size, const media_raw_audio_format &format);
+	@Override
+	public void onBackPressed() {
+		if (godotFragment != null) {
+			godotFragment.onBackPressed();
+		} else {
+			super.onBackPressed();
+		}
+	}
 
-	unsigned int mix_rate;
-	SpeakerMode speaker_mode;
-	unsigned int buffer_size;
-	int channels;
-
-	bool active;
-
-public:
-	const char *get_name() const {
-		return "MediaKit";
-	};
-
-	virtual Error init();
-	virtual void start();
-	virtual int get_mix_rate() const;
-	virtual SpeakerMode get_speaker_mode() const;
-	virtual void lock();
-	virtual void unlock();
-	virtual void finish();
-
-	AudioDriverMediaKit();
-	~AudioDriverMediaKit();
-};
-
-#endif
+	@Override
+	public boolean onKeyMultiple(final int inKeyCode, int repeatCount, KeyEvent event) {
+		if (godotFragment != null && godotFragment.onKeyMultiple(inKeyCode, repeatCount, event)) {
+			return true;
+		}
+		return super.onKeyMultiple(inKeyCode, repeatCount, event);
+	}
+}

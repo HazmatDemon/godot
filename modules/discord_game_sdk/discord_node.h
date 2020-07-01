@@ -8,8 +8,8 @@
 #include "scene/main/node.h"
 #include "core/class_db.h"
 
-#include "thirdparty/discord_game_sdk/core.h"
-#include "thirdparty/discord_game_sdk/ffi.h"
+#include "modules/discord_game_sdk/source/core.h"
+#include "modules/discord_game_sdk/source/ffi.h"
 
 class DiscordSDK : public Node {
     
@@ -89,9 +89,11 @@ public:
 	void set_state(const String &state);
     void set_details(const String& detail);
 
-	String get_user_name(int64_t user_id);
+	//String get_user_name(int64_t user_id);
 
-
+	String get_large_image();
+	void set_large_image(const String& image);
+	
     DiscordSDK();
     ~DiscordSDK();
 };

@@ -30,6 +30,7 @@ void DiscordSDK::set_details(const String& detail) {
     activity.SetDetails(detail.utf8().ptr());
 }
 
+/*
 String DiscordSDK::get_user_name(int64_t user_id) {
 	String username;
 	core->UserManager().GetUser(user_id, [&](discord::Result result, discord::User user) {
@@ -37,6 +38,15 @@ String DiscordSDK::get_user_name(int64_t user_id) {
 		return;
 	});
 	return username;
+}
+*/
+
+String DiscordSDK::get_large_image() {
+	return String(activity.GetAssets().GetLargeImage());
+}
+
+void DiscordSDK::set_large_image(const String& image) {
+	activity.GetAssets().SetLargeImage(image.utf8().ptrw());
 }
 
 void DiscordSDK::_notification(int p_what) {
@@ -102,7 +112,10 @@ void DiscordSDK::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_time_left"), &DiscordSDK::get_time_left);
 	ClassDB::bind_method(D_METHOD("set_state", "state"), &DiscordSDK::set_state);
     ClassDB::bind_method(D_METHOD("set_details", "detail"), &DiscordSDK::set_details);
-	ClassDB::bind_method(D_METHOD("get_user_name", "user_id"), &DiscordSDK::get_user_name);
+	//ClassDB::bind_method(D_METHOD("get_user_name", "user_id"), &DiscordSDK::get_user_name);
+
+	ClassDB::bind_method(D_METHOD("get_large_image"), &DiscordSDK::get_large_image);
+	ClassDB::bind_method(D_METHOD("set_large_image", "image"), &DiscordSDK::set_large_image);
 }
 
 DiscordSDK::DiscordSDK() {
