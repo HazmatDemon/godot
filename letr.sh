@@ -1,3 +1,1 @@
-#!/bin/bash
-
-scons p=x11 bits=64 target=release tools=no -j12
+scons p=x11 target=release tools=no bits=64 use_llvm=yes use_lld=yes -j4 && strip bin/godot.x11.opt.64.llvm
