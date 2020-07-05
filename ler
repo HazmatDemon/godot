@@ -1,3 +1,0 @@
-#!bin/bash
-
-scons p=linux bits=64 target=release_debug tools=yes -j12
