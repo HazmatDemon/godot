@@ -6,7 +6,7 @@ This branch is custom version of Godot 3.2. It is meant for [Fairy Dust Server](
 
 ## Building
 
-# Linux
+### Linux
 
 First you need to go through `Requirements` section on [Compiling for X11](https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html).
 Don't install gcc, install clang and lld (resulting binaries will be faster).
@@ -21,7 +21,7 @@ To build dedicated server binary use:
 
 ```./lsr.sh```
 
-# Windows
+### Windows
 
 * Downlaod [MySQL C++ Connector](https://dev.mysql.com/downloads/connector/cpp/) and [Boost Library](https://dl.bintray.com/boostorg/master/) zip archives.
 * Put them wherever you want (beside from System32 directory!).
