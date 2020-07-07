@@ -23,11 +23,11 @@ To build dedicated server binary use:
 
 ### Windows
 
-* Downlaod [MySQL C++ Connector](https://dev.mysql.com/downloads/connector/cpp/) and [Boost Library](https://dl.bintray.com/boostorg/master/) zip archives.
-* Put them wherever you want (beside from System32 directory!).
+* Download [MySQL C++ Connector](https://dev.mysql.com/downloads/connector/cpp/) and [Boost Library](https://dl.bintray.com/boostorg/master/) zip archives
+* Put them wherever you want (beside from System32 directory!)
 * Alter the correct paths to those libraries in mysqlcppconn module's [SCsub](https://github.com/HazmatDemon/godot/blob/3.2-server/modules/mysqlcppconn/SCsub)
 * Find a file called `mysqlcppconn.lib` in MySQL C++ Connector directory
-* Rename it to `mysqlcppconn.windows.opt.tools.64.lib` and put it to `modules/mysqlcppconn/lib`
+* Rename it to `mysqlcppconn.windows.opt.tools.64.lib` and place it `modules/mysqlcppconn/lib` directory
 
 Now you are ready build Godot Editor for windows!
 
