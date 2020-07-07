@@ -11,7 +11,7 @@ This branch is custom version of Godot 3.2. It is meant for [Fairy Dust Server](
 First you need to go through `Requirements` section on [Compiling for X11](https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html).
 Don't install gcc, install clang and lld (resulting binaries will be faster).
 
-Then you need to install libmysqlcppconn-dev (for ubuntu like distributions) or libmysqlcppconn-dev (arch based distributions) repository.
+Then you need to install libmysqlcppconn-dev (ubuntu/debian and for arch from AUR).
 
 To build release export templates use:
 
