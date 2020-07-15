@@ -1,19 +1,46 @@
 #!/usr/bin/env python
 
 Import("env")
+Import("env_modules")
 
+env_discord_game_sdk = env_modules.Clone()
 
-env.add_source_files(env.modules_sources, "source/*.cpp")
-env.add_source_files(env.modules_sources, "*.cpp")
+# Thirdparty source files
 
-if env["platform"] == "x11":
-	env.Append(CPPFLAGS=["-Llib"])
+if env["builtin_discord_game_sdk"]:
+    thirdparty_dir = "#thirdparty/discord_game_sdk/"
+    thirdparty_sources = [
+		"achievement_manager.cpp",
+		"activity_manager.cpp",
+		"application_manager.cpp",
+		"core.cpp",
+		"image_manager.cpp",
+		"lobby_manager.cpp",
+		"network_manager.cpp",
+		"overlay_manager.cpp",
+		"relationship_manager.cpp",
+		"storage_manager.cpp",
+		"store_manager.cpp",
+		"types.cpp",
+		"user_manager.cpp",
+		"voice_manager.cpp"
+    ]
+    thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]
 
-env.Append(LIBPATH=['#modules/discord_game_sdk/lib/'])
-env.Append(LIBS=['discord_game_sdk'])
+    env_discord_game_sdk.Prepend(CPPPATH=[thirdparty_dir])
+    env_discord_game_sdk.Append(CPPDEFINES=["GODOT_DISCORD_GAME_SDK"])
+	
+    if env["platform"]=="x11":
+        env_discord_game_sdk.Append(CPPFLAGS=["-Llib"])
 
+    env.Append(LIBPATH=['#thirdparty/discord_game_sdk/lib/'])
+    env.Append(LIBS=['discord_game_sdk'])
 
+    env_thirdparty = env_discord_game_sdk.Clone()
+    env_thirdparty.disable_warnings()
+    env_thirdparty.add_source_files(env.modules_sources, thirdparty_sources)
 
+env_discord_game_sdk.add_source_files(env.modules_sources, "*.cpp")
 
 
 

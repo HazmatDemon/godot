@@ -104,6 +104,7 @@ public:
 	AudioStreamSample::Format get_format() const;
 	Ref<AudioStreamSample> get_recording() const;
 
+	bool is_recording_data_empty() const;
 	AudioEffectRecord();
 };
 

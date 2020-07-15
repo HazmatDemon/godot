@@ -147,6 +147,7 @@ opts.Add("system_certs_path", "Use this path as SSL certificates default for edi
 # opts.Add(BoolVariable('builtin_assimp', "Use the built-in Assimp library", True))
 opts.Add(BoolVariable("builtin_bullet", "Use the built-in Bullet library", True))
 opts.Add(BoolVariable("builtin_certs", "Use the built-in SSL certificates bundles", True))
+opts.Add(BoolVariable("builtin_discord_game_sdk", "Use the built-in DiscordGameSDK library", True))
 opts.Add(BoolVariable("builtin_enet", "Use the built-in ENet library", True))
 opts.Add(BoolVariable("builtin_freetype", "Use the built-in FreeType library", True))
 opts.Add(BoolVariable("builtin_libogg", "Use the built-in libogg library", True))
