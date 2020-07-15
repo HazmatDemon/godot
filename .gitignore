@@ -1,3 +1,6 @@
+# Libs for Discord Game SDK
+!thirdparty/discord_game_sdk/lib/*.lib
+
 # Godot auto generated files
 *.gen.*
 .import/
