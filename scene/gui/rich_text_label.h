@@ -69,12 +69,14 @@ public:
 		ITEM_LIST,
 		ITEM_TABLE,
 		ITEM_FADE,
+		ITEM_HIGHLIGHT,
 		ITEM_SHAKE,
 		ITEM_WAVE,
 		ITEM_TORNADO,
 		ITEM_RAINBOW,
 		ITEM_META,
-		ITEM_CUSTOMFX
+		ITEM_CUSTOMFX,
+		ITEM_NONE
 	};
 
 protected:
@@ -213,6 +215,11 @@ private:
 		int length;
 
 		ItemFade() { type = ITEM_FADE; }
+	};
+
+	struct ItemHighlight : public Item {
+		Color color;
+		ItemHighlight() { type = ITEM_HIGHLIGHT; }
 	};
 
 	struct ItemFX : public Item {
@@ -427,6 +434,7 @@ public:
 	void push_meta(const Variant &p_meta);
 	void push_table(int p_columns);
 	void push_fade(int p_start_index, int p_length);
+	void push_highlight(const Color &p_color);
 	void push_shake(int p_strength, float p_rate);
 	void push_wave(float p_frequency, float p_amplitude);
 	void push_tornado(float p_frequency, float p_radius);

@@ -1,4 +1,3 @@
-
 /*************************************************************************/
 /*  discord_game_sdk.cpp                                                 */
 /*************************************************************************/
@@ -31,185 +30,225 @@
 
 #include "discord_game_sdk.h"
 
-void DiscordGameSDK::_lobby_created(DiscordGameSDK::Result result, int64_t lobby_id, int64_t owner_id, const String& secret, bool is_locked) {
+void DiscordGameSDK::_activity_updated(DiscordGameSDK::Result result) {
+
+	emit_signal("activity_updated", result);
+}
+
+void DiscordGameSDK::_lobby_created(DiscordGameSDK::Result result, int64_t lobby_id, int64_t owner_id, const String &secret, bool is_locked) {
 
 	emit_signal("lobby_created", result, lobby_id, owner_id, secret, is_locked);
 }
 
-void DiscordGameSDK::_lobbies_found(DiscordGameSDK::Result result, int32_t count) {
+void DiscordGameSDK::_lobby_type_updated(DiscordGameSDK::Result result, int64_t lobby_id) {
 
-	emit_signal("lobbies_found", result, count);
+	emit_signal("lobby_type_updated", result, lobby_id);
 }
 
-void DiscordGameSDK::_lobby_connected(DiscordGameSDK::Result result) {
+void DiscordGameSDK::_lobby_get_type(DiscordGameSDK::Result result, int64_t lobby_id, DiscordGameSDK::LobbyType lobby_type) {
 
-	emit_signal("lobby_connected", result);
+	emit_signal("lobby_get_type", result, lobby_id, lobby_type);
 }
 
-void DiscordGameSDK::_voice_connected(Result result) {
+void DiscordGameSDK::_connected_to_lobby(DiscordGameSDK::Result result) {
 
-	emit_signal("voice_connected", result);
+	emit_signal("connected_to_lobby", result);
+}
+
+void DiscordGameSDK::_connected_to_lobby_voice(Result result) {
+
+	emit_signal("connected_to_lobby_voice", result);
 }
 
 DiscordGameSDK::Result DiscordGameSDK::create(int64_t client_id, DiscordGameSDK::CreateFlags flag) {
 	return static_cast<DiscordGameSDK::Result>(discord::Core::Create(client_id, flag, &core));
 }
 
-DiscordGameSDK::Result DiscordGameSDK::update_activity() const {
+void DiscordGameSDK::update_activity() {
 
-	ERR_FAIL_COND_V(!core, DiscordGameSDK::Result::INTERNAL_ERROR);
+	ERR_FAIL_COND_MSG(!core, "You need to call \"DiscordGameSDK::create\" before updating activity. Also make sure it was successfully created");
 
-	DiscordGameSDK::Result ret;
-
-	core->ActivityManager().UpdateActivity(activity, [&](discord::Result result) { 
-		ret = static_cast<DiscordGameSDK::Result>(result); 
+	core->ActivityManager().UpdateActivity(activity, [&](discord::Result result) {
+		call_deferred("_activity_updated", static_cast<DiscordGameSDK::Result>(result));
 	});
-	return ret;
 }
 
-void DiscordGameSDK::set_time_left(int64_t stamp) {
+void DiscordGameSDK::set_activity_time_left(int64_t stamp) {
 
 	activity.GetTimestamps().SetEnd(stamp);
 }
 
-int64_t DiscordGameSDK::get_time_left() const {
+int64_t DiscordGameSDK::get_activity_time_left() const {
 	return activity.GetTimestamps().GetEnd();
 }
 
-void DiscordGameSDK::set_state(const String& state) {
+void DiscordGameSDK::set_activity_state(const String &state) {
 
 	activity.SetState(state.utf8().ptr());
 }
 
-String DiscordGameSDK::get_state() const {
+String DiscordGameSDK::get_activity_state() const {
 	return activity.GetState();
 }
 
-void DiscordGameSDK::set_details(const String& detail) {
+void DiscordGameSDK::set_activity_details(const String &detail) {
 
-    activity.SetDetails(detail.utf8().ptr());
+	activity.SetDetails(detail.utf8().ptr());
 }
 
-String DiscordGameSDK::get_details() const {
+String DiscordGameSDK::get_activity_details() const {
 	return activity.GetDetails();
 }
 
-void DiscordGameSDK::set_large_image(const String& image) {
+void DiscordGameSDK::set_activity_large_image(const String &image) {
 
 	activity.GetAssets().SetLargeImage(image.utf8().ptrw());
 }
 
-String DiscordGameSDK::get_large_image() const {
+String DiscordGameSDK::get_activity_large_image() const {
 	return String(activity.GetAssets().GetLargeImage());
 }
 
-void DiscordGameSDK::create_lobby(const String& name, int capacity, DiscordGameSDK::LobbyType type) {
+void DiscordGameSDK::create_lobby(const String &name, uint32_t capacity, DiscordGameSDK::LobbyType type) {
 
 	ERR_FAIL_COND(!core);
 
-	discord::LobbyManager& lobby_manager = core->LobbyManager();
-	discord::LobbyTransaction transaction;
+	discord::LobbyManager &lobby_manager = core->LobbyManager();
 
-	lobby_manager.GetLobbyCreateTransaction(&transaction);
+	discord::LobbySearchQuery search_query;
+	DiscordGameSDK::Result result = static_cast<DiscordGameSDK::Result>(lobby_manager.GetSearchQuery(&search_query));
 
-	transaction.SetType(static_cast<discord::LobbyType>(type));
-	transaction.SetCapacity(capacity);
-	transaction.SetMetadata("name", name.utf8().ptr());
+	if (result != DiscordGameSDK::Result::OK) {
+		return;
+	}
+	search_query.Filter("metadata.name", discord::LobbySearchComparison::Equal, discord::LobbySearchCast::String, name.utf8().ptr());
 
-	lobby_manager.CreateLobby(transaction, [&](discord::Result result, discord::Lobby lobby) {
-		call_deferred("_lobby_created", static_cast<DiscordGameSDK::Result>(result), lobby.GetId(), lobby.GetOwnerId(), String(lobby.GetSecret()), lobby.GetLocked());
-	});
-}
-
-void DiscordGameSDK::find_lobbies(const String& key, DiscordGameSDK::LobbySearchComparison comp, DiscordGameSDK::LobbySearchCast cast, const String& value, uint32_t limit) {
-
-	ERR_FAIL_COND(!core);
-
-	discord::LobbyManager& lobby_manager = core->LobbyManager();
-	discord::LobbySearchQuery query;
-	lobby_manager.GetSearchQuery(&query);
-	query.Filter(key.utf8().ptr(), static_cast<discord::LobbySearchComparison>(comp), static_cast<discord::LobbySearchCast>(cast), value.utf8().ptr());
-	query.Limit(limit);
-	lobby_manager.Search(query, [&](discord::Result result) {
+	lobby_manager.Search(search_query, [&](discord::Result result) {
 		int32_t count;
 		lobby_manager.LobbyCount(&count);
-		call_deferred("_lobbies_found", static_cast<DiscordGameSDK::Result>(result), count);
+
+		if (count >= 0 && count < 1) {
+			discord::LobbyTransaction transaction;
+
+			lobby_manager.GetLobbyCreateTransaction(&transaction);
+
+			transaction.SetType(static_cast<discord::LobbyType>(type));
+			transaction.SetCapacity(capacity);
+			transaction.SetMetadata("name", name.utf8().ptr());
+
+			lobby_manager.CreateLobby(transaction, [&](discord::Result result, discord::Lobby lobby) {
+				call_deferred("_lobby_created", static_cast<DiscordGameSDK::Result>(result), lobby.GetId(), lobby.GetOwnerId(), String(lobby.GetSecret()), lobby.GetLocked());
+			});
+		}
 	});
 }
 
-void DiscordGameSDK::connect_lobby(int64_t lobby_id, const String& secret) {
+void DiscordGameSDK::set_lobby_type(int64_t lobby_id, DiscordGameSDK::LobbyType lobby_type) {
 
 	ERR_FAIL_COND(!core);
 
-	discord::LobbyManager& lobby_manager = core->LobbyManager();
+	discord::LobbyManager &lobby_manager = core->LobbyManager();
+	discord::LobbyTransaction lobby_transaction;
+
+	DiscordGameSDK::Result result = static_cast<DiscordGameSDK::Result>(lobby_manager.GetLobbyUpdateTransaction(lobby_id, &lobby_transaction));
+
+	if (result != DiscordGameSDK::Result::OK) {
+		call_deferred("_lobby_type_updated", result, lobby_id);
+		return;
+	}
+
+	lobby_transaction.SetType(static_cast<discord::LobbyType>(lobby_type));
+
+	lobby_manager.UpdateLobby(lobby_id, lobby_transaction, [&](discord::Result result) {
+		call_deferred("_lobby_type_updated", static_cast<DiscordGameSDK::Result>(result), lobby_id);
+	});
+}
+
+void DiscordGameSDK::get_lobby_type(int64_t lobby_id) {
+
+	ERR_FAIL_COND(!core);
+
+	discord::LobbyManager &lobby_manager = core->LobbyManager();
+	discord::LobbySearchQuery search_query;
+
+	DiscordGameSDK::Result result = static_cast<DiscordGameSDK::Result>(lobby_manager.GetSearchQuery(&search_query));
+	if (result != DiscordGameSDK::Result::OK) {
+		call_deferred("_lobby_get_type", result, lobby_id, 0);
+		return;
+	}
+
+	lobby_manager.Search(search_query, [&](discord::Result result) {
+		discord::Lobby lobby;
+		lobby_manager.GetLobby(lobby_id, &lobby);
+		call_deferred("_lobby_get_type", static_cast<DiscordGameSDK::Result>(result), lobby_id, static_cast<DiscordGameSDK::LobbyType>(lobby.GetType()));
+	});
+}
+
+void DiscordGameSDK::connect_to_lobby(int64_t lobby_id, const String &secret) {
+
+	ERR_FAIL_COND(!core || secret.empty());
+
+	discord::LobbyManager &lobby_manager = core->LobbyManager();
 
 	lobby_manager.ConnectLobby(lobby_id, secret.utf8().ptr(), [&](discord::Result result, discord::Lobby lobby) {
 		call_deferred("_lobby_connected", static_cast<DiscordGameSDK::Result>(result));
 	});
 }
 
-void DiscordGameSDK::connect_voice(int64_t lobby_id) {
+void DiscordGameSDK::connect_to_lobby_voice(int64_t lobby_id) {
 
 	ERR_FAIL_COND(!core);
 
-	discord::LobbyManager& lobby_manager = core->LobbyManager();
+	discord::LobbyManager &lobby_manager = core->LobbyManager();
 
 	lobby_manager.ConnectVoice(lobby_id, [&](discord::Result result) {
-		emit_signal("_voice_connected", static_cast<DiscordGameSDK::Result>(result));
+		call_deferred("_voice_connected", static_cast<DiscordGameSDK::Result>(result));
 	});
-}
-
-void DiscordGameSDK::_notification(int p_what) {
-
-	switch (p_what) {
-		case NOTIFICATION_READY: {
-
-			set_process(true);
-		} break;
-		case NOTIFICATION_PROCESS: {
-
-			if (!core) {
-				ERR_PRINT_ONCE("Core is uninitialized");
-				return;
-			}
-			core->RunCallbacks();
-		} break;
-	}
 }
 
 void DiscordGameSDK::_bind_methods() {
 
+	ClassDB::bind_method(D_METHOD("_activity_updated", "result"), &DiscordGameSDK::_activity_updated);
+	ClassDB::bind_method(D_METHOD("_lobby_created", "result", "lobby_id", "owner_id", "secret", "is_locked"), &DiscordGameSDK::_lobby_created);
+
+	ClassDB::bind_method(D_METHOD("_lobby_type_updated", "result", "lobby_id"), &DiscordGameSDK::_lobby_type_updated);
+	ClassDB::bind_method(D_METHOD("_lobby_get_type", "result", "lobby_id", "lobby_type"), &DiscordGameSDK::_lobby_get_type);
+
+	ClassDB::bind_method(D_METHOD("_connected_to_lobby", "result"), &DiscordGameSDK::_connected_to_lobby);
+	ClassDB::bind_method(D_METHOD("_connected_to_lobby_voice", "result"), &DiscordGameSDK::_connected_to_lobby_voice);
+
 	ClassDB::bind_method(D_METHOD("create", "client_id", "create_flag"), &DiscordGameSDK::create);
 
-    ClassDB::bind_method(D_METHOD("update_activity"), &DiscordGameSDK::update_activity);
+	ClassDB::bind_method(D_METHOD("update_activity"), &DiscordGameSDK::update_activity);
 
-    ClassDB::bind_method(D_METHOD("set_time_left", "stamp"), &DiscordGameSDK::set_time_left);
-	ClassDB::bind_method(D_METHOD("get_time_left"), &DiscordGameSDK::get_time_left);
+	ClassDB::bind_method(D_METHOD("set_activity_time_left", "stamp"), &DiscordGameSDK::set_activity_time_left);
+	ClassDB::bind_method(D_METHOD("get_activity_time_left"), &DiscordGameSDK::get_activity_time_left);
 
-	ClassDB::bind_method(D_METHOD("set_state", "state"), &DiscordGameSDK::set_state);
-	ClassDB::bind_method(D_METHOD("get_state"), &DiscordGameSDK::get_state);
+	ClassDB::bind_method(D_METHOD("set_activity_state", "state"), &DiscordGameSDK::set_activity_state);
+	ClassDB::bind_method(D_METHOD("get_activity_state"), &DiscordGameSDK::get_activity_state);
 
-    ClassDB::bind_method(D_METHOD("set_details", "detail"), &DiscordGameSDK::set_details);
-	ClassDB::bind_method(D_METHOD("get_detials"), &DiscordGameSDK::get_details);
+	ClassDB::bind_method(D_METHOD("set_activity_details", "detail"), &DiscordGameSDK::set_activity_details);
+	ClassDB::bind_method(D_METHOD("get_activity_detials"), &DiscordGameSDK::get_activity_details);
 
-	ClassDB::bind_method(D_METHOD("set_large_image", "image"), &DiscordGameSDK::set_large_image);
-	ClassDB::bind_method(D_METHOD("get_large_image"), &DiscordGameSDK::get_large_image);
+	ClassDB::bind_method(D_METHOD("set_activity_large_image", "image"), &DiscordGameSDK::set_activity_large_image);
+	ClassDB::bind_method(D_METHOD("get_activity_large_image"), &DiscordGameSDK::get_activity_large_image);
 
 	ClassDB::bind_method(D_METHOD("create_lobby", "name", "capacity", "type"), &DiscordGameSDK::create_lobby);
-	ClassDB::bind_method(D_METHOD("find_lobbies", "key", "comp", "cast", "value", "count"), &DiscordGameSDK::find_lobbies);
-	ClassDB::bind_method(D_METHOD("connect_lobby", "lobby_id", "secret"), &DiscordGameSDK::connect_lobby);
-	ClassDB::bind_method(D_METHOD("connect_voice", "lobby_id"), &DiscordGameSDK::connect_voice);
 
-	ClassDB::bind_method(D_METHOD("_lobby_created", "result", "lobby_id", "owner_id", "secret", "is_locked"), &DiscordGameSDK::_lobby_created);
-	ClassDB::bind_method(D_METHOD("_lobbies_found", "result", "count"), &DiscordGameSDK::_lobbies_found);
-	ClassDB::bind_method(D_METHOD("_lobby_connected", "result"), &DiscordGameSDK::_lobby_connected);
-	ClassDB::bind_method(D_METHOD("_voice_connected", "result"), &DiscordGameSDK::_voice_connected);
-	
+	ClassDB::bind_method(D_METHOD("set_lobby_type", "lobby_id", "lobby_type"), &DiscordGameSDK::set_lobby_type);
+	ClassDB::bind_method(D_METHOD("get_lobby_type", "lobby_id"), &DiscordGameSDK::get_lobby_type);
+
+	ClassDB::bind_method(D_METHOD("connect_to_lobby", "lobby_id", "secret"), &DiscordGameSDK::connect_to_lobby);
+	ClassDB::bind_method(D_METHOD("connect_to_lobby_voice", "lobby_id"), &DiscordGameSDK::connect_to_lobby_voice);
 
 	ADD_SIGNAL(MethodInfo("lobby_created", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "lobby_id"), PropertyInfo(Variant::INT, "owner_id"), PropertyInfo(Variant::STRING, "secret"), PropertyInfo(Variant::BOOL, "is_locked")));
-	ADD_SIGNAL(MethodInfo("lobbies_found", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "count")));
-	ADD_SIGNAL(MethodInfo("lobby_connected", PropertyInfo(Variant::INT, "result")));
-	ADD_SIGNAL(MethodInfo("voice_connected", PropertyInfo(Variant::INT, "result")));
+	ADD_SIGNAL(MethodInfo("activity_updated", PropertyInfo(Variant::INT, "result")));
+
+	ADD_SIGNAL(MethodInfo("lobby_type_updated", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "lobby_id")));
+	ADD_SIGNAL(MethodInfo("lobby_get_type", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "lobby_id"), PropertyInfo(Variant::INT, "lobby_type")));
+
+	ADD_SIGNAL(MethodInfo("connected_to_lobby", PropertyInfo(Variant::INT, "result")));
+	ADD_SIGNAL(MethodInfo("connected_to_lobby_voice", PropertyInfo(Variant::INT, "result")));
 
 	BIND_ENUM_CONSTANT(OK);
 	BIND_ENUM_CONSTANT(SERVICE_UNAVAILABLE);
@@ -227,7 +266,7 @@ void DiscordGameSDK::_bind_methods() {
 	BIND_ENUM_CONSTANT(NO_ELIGIBLE_ACTIVITY);
 	BIND_ENUM_CONSTANT(INVALID_INVITE);
 	BIND_ENUM_CONSTANT(NOT_AUTHENTICATED);
-	BIND_ENUM_CONSTANT(INVALIS_ACCESS_TOKEN);
+	BIND_ENUM_CONSTANT(INVALID_ACCESS_TOKEN);
 	BIND_ENUM_CONSTANT(APPLICATION_MISMATCH);
 	BIND_ENUM_CONSTANT(INVALID_DATA_URL);
 	BIND_ENUM_CONSTANT(INVALID_BASE_64);
@@ -247,7 +286,7 @@ void DiscordGameSDK::_bind_methods() {
 	BIND_ENUM_CONSTANT(INAVLID_ORIGIN);
 	BIND_ENUM_CONSTANT(RATE_LIMIT);
 	BIND_ENUM_CONSTANT(OAUTH2_ERROR);
-	BIND_ENUM_CONSTANT(SELCT_CHANNEL_TIMEOUT);
+	BIND_ENUM_CONSTANT(SELECT_CHANNEL_TIMEOUT);
 	BIND_ENUM_CONSTANT(GET_GUILD_TIMEOUT);
 	BIND_ENUM_CONSTANT(SELECT_VOICE_FORCE_REQUIRED);
 	BIND_ENUM_CONSTANT(CAPTURE_SHORTCUT_ALREADY_LISTENING);
@@ -273,9 +312,28 @@ void DiscordGameSDK::_bind_methods() {
 	BIND_ENUM_CONSTANT(NUMBER);
 }
 
+void DiscordGameSDK::_notification(int p_what) {
+	switch (p_what) {
+		case NOTIFICATION_READY: {
+
+			set_process(true);
+		} break;
+		case NOTIFICATION_PROCESS: {
+
+			if (core) {
+				core->RunCallbacks();
+			}
+		} break;
+		default:
+			break;
+	}
+}
+
 DiscordGameSDK::DiscordGameSDK() {
 }
 
 DiscordGameSDK::~DiscordGameSDK() {
-	delete core;
+	if (core) {
+		delete core;
+	}
 }

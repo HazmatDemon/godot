@@ -356,6 +356,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 				bool underline = false;
 				bool strikethrough = false;
 				ItemFade *fade = NULL;
+				ItemHighlight *highlight = NULL;
 				int it_char_start = p_char_count;
 
 				Vector<ItemFX *> fx_stack = Vector<ItemFX *>();
@@ -366,7 +367,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 					color = _find_color(text, p_base_color);
 					font_color_shadow = _find_color(text, p_font_color_shadow);
 					if (_find_underline(text) || (_find_meta(text, &meta) && underline_meta)) {
-						underline = true;
+								underline = true;
 					} else if (_find_strikethrough(text)) {
 						strikethrough = true;
 					}
@@ -378,6 +379,14 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 							break;
 						}
 						fade_item = fade_item->parent;
+					}
+					Item *highlight_item = it;
+					while (highlight_item) {
+						if (highlight_item->type == ITEM_HIGHLIGHT) {
+							highlight = static_cast<ItemHighlight *>(highlight_item);
+							break;
+						}
+						highlight_item = highlight_item->parent;
 					}
 
 				} else if (p_mode == PROCESS_CACHE) {
@@ -479,6 +488,11 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 										faded_visibility = faded_visibility < 0.0f ? 0.0f : faded_visibility;
 									}
 									fx_color.a = faded_visibility;
+								}
+
+								if (highlight) {
+									cw = font->get_char_size(fx_char, c[i + 1]).x;
+									draw_rect(Rect2(fx_offset.x + pofs, fx_offset.y + y, cw, lh), highlight->color);
 								}
 
 								bool visible = visible_characters < 0 || ((p_char_count < visible_characters && YRANGE_VISIBLE(y + lh - line_descent - line_ascent, line_ascent + line_descent)) &&
@@ -1453,7 +1467,7 @@ bool RichTextLabel::_find_strikethrough(Item *p_item) {
 
 bool RichTextLabel::_find_by_type(Item *p_item, ItemType p_type) {
 
-	ERR_FAIL_INDEX_V((int)p_type, 19, false);
+	ERR_FAIL_INDEX_V((int)p_type, ITEM_NONE, false);
 
 	Item *item = p_item;
 
@@ -1879,6 +1893,12 @@ void RichTextLabel::push_fade(int p_start_index, int p_length) {
 	ItemFade *item = memnew(ItemFade);
 	item->starting_index = p_start_index;
 	item->length = p_length;
+	_add_item(item, true);
+}
+
+void RichTextLabel::push_highlight(const Color &p_color) {
+	ItemHighlight *item = memnew(ItemHighlight);
+	item->color = p_color;
 	_add_item(item, true);
 }
 
@@ -2357,6 +2377,51 @@ Error RichTextLabel::append_bbcode(const String &p_bbcode) {
 			push_fade(startIndex, length);
 			pos = brk_end + 1;
 			tag_stack.push_front("fade");
+		} else if (tag.begins_with("highlight=")) {
+			String col = tag.substr(10, tag.length());
+			Color color;
+
+			if (col.begins_with("#"))
+				if (col.is_valid_html_color())
+					color = Color::html(col);
+			else if (col == "aqua")
+				color = Color(0, 1, 1);
+			else if (col == "black")
+				color = Color(0, 0, 0);
+			else if (col == "blue")
+				color = Color(0, 0, 1);
+			else if (col == "fuchsia")
+				color = Color(1, 0, 1);
+			else if (col == "gray" || col == "grey")
+				color = Color(0.5, 0.5, 0.5);
+			else if (col == "green")
+				color = Color(0, 0.5, 0);
+			else if (col == "lime")
+				color = Color(0, 1, 0);
+			else if (col == "maroon")
+				color = Color(0.5, 0, 0);
+			else if (col == "navy")
+				color = Color(0, 0, 0.5);
+			else if (col == "olive")
+				color = Color(0.5, 0.5, 0);
+			else if (col == "purple")
+				color = Color(0.5, 0, 0.5);
+			else if (col == "red")
+				color = Color(1, 0, 0);
+			else if (col == "silver")
+				color = Color(0.75, 0.75, 0.75);
+			else if (col == "teal")
+				color = Color(0, 0.5, 0.5);
+			else if (col == "white")
+				color = Color(1, 1, 1);
+			else if (col == "yellow")
+				color = Color(1, 1, 0);
+			else
+				color = base_color;
+
+			push_highlight(color);
+			pos = brk_end + 1;
+			tag_stack.push_front("highlight");
 		} else if (bbcode == "shake") {
 			int strength = 5;
 			float rate = 20.0f;
@@ -2750,6 +2815,7 @@ void RichTextLabel::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("push_table", "columns"), &RichTextLabel::push_table);
 	ClassDB::bind_method(D_METHOD("set_table_column_expand", "column", "expand", "ratio"), &RichTextLabel::set_table_column_expand);
 	ClassDB::bind_method(D_METHOD("push_cell"), &RichTextLabel::push_cell);
+	ClassDB::bind_method(D_METHOD("push_highlight", "color"), &RichTextLabel::push_highlight);
 	ClassDB::bind_method(D_METHOD("pop"), &RichTextLabel::pop);
 
 	ClassDB::bind_method(D_METHOD("clear"), &RichTextLabel::clear);
@@ -2854,6 +2920,7 @@ void RichTextLabel::_bind_methods() {
 	BIND_ENUM_CONSTANT(ITEM_LIST);
 	BIND_ENUM_CONSTANT(ITEM_TABLE);
 	BIND_ENUM_CONSTANT(ITEM_FADE);
+	BIND_ENUM_CONSTANT(ITEM_HIGHLIGHT);
 	BIND_ENUM_CONSTANT(ITEM_SHAKE);
 	BIND_ENUM_CONSTANT(ITEM_WAVE);
 	BIND_ENUM_CONSTANT(ITEM_TORNADO);
