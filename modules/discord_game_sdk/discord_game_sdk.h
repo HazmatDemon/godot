@@ -125,6 +125,8 @@ private:
 	discord::Activity activity{};
 
 	void _activity_updated(Result result);
+	void _activity_cleared(Result result);
+
 	void _lobby_created(Result result, int64_t lobby_id, int64_t owner_id, const String &secret, bool is_locked);
 
 	void _lobby_type_updated(Result result, int64_t lobby_id);
@@ -142,10 +144,14 @@ public:
 	Result create(int64_t client_id, CreateFlags flag);
 
 	void update_activity();
+	void clear_activity();
 
 	// Activity
 	void set_activity_time_left(int64_t stamp);
 	int64_t get_activity_time_left() const;
+
+	void set_activity_time_elapsed(int64_t stamp);
+	int64_t get_activity_time_elapsed() const;
 
 	void set_activity_state(const String &state);
 	String get_activity_state() const;

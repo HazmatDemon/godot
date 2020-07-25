@@ -35,6 +35,11 @@ void DiscordGameSDK::_activity_updated(DiscordGameSDK::Result result) {
 	emit_signal("activity_updated", result);
 }
 
+void DiscordGameSDK::_activity_cleared(DiscordGameSDK::Result result) {
+
+	emit_signal("activity_cleared", result);
+}
+
 void DiscordGameSDK::_lobby_created(DiscordGameSDK::Result result, int64_t lobby_id, int64_t owner_id, const String &secret, bool is_locked) {
 
 	emit_signal("lobby_created", result, lobby_id, owner_id, secret, is_locked);
@@ -73,6 +78,15 @@ void DiscordGameSDK::update_activity() {
 	});
 }
 
+void DiscordGameSDK::clear_activity() {
+
+	ERR_FAIL_COND_MSG(!core, "You need to call \"DiscordGameSDK::create\" before updating activity. Also make sure it was successfully created");
+
+	core->ActivityManager().ClearActivity([&](discord::Result result) {
+		call_deferred("_activity_cleared", static_cast<DiscordGameSDK::Result>(result));
+	});
+}
+
 void DiscordGameSDK::set_activity_time_left(int64_t stamp) {
 
 	activity.GetTimestamps().SetEnd(stamp);
@@ -80,6 +94,15 @@ void DiscordGameSDK::set_activity_time_left(int64_t stamp) {
 
 int64_t DiscordGameSDK::get_activity_time_left() const {
 	return activity.GetTimestamps().GetEnd();
+}
+
+void DiscordGameSDK::set_activity_time_elapsed(int64_t stamp) {
+
+	activity.GetTimestamps().SetStart(stamp);
+}
+
+int64_t DiscordGameSDK::get_activity_time_elapsed() const {
+	return activity.GetTimestamps().GetStart();
 }
 
 void DiscordGameSDK::set_activity_state(const String &state) {
@@ -209,6 +232,7 @@ void DiscordGameSDK::connect_to_lobby_voice(int64_t lobby_id) {
 void DiscordGameSDK::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("_activity_updated", "result"), &DiscordGameSDK::_activity_updated);
+	ClassDB::bind_method(D_METHOD("_activity_cleared", "result"), &DiscordGameSDK::_activity_cleared);
 	ClassDB::bind_method(D_METHOD("_lobby_created", "result", "lobby_id", "owner_id", "secret", "is_locked"), &DiscordGameSDK::_lobby_created);
 
 	ClassDB::bind_method(D_METHOD("_lobby_type_updated", "result", "lobby_id"), &DiscordGameSDK::_lobby_type_updated);
@@ -220,9 +244,13 @@ void DiscordGameSDK::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("create", "client_id", "create_flag"), &DiscordGameSDK::create);
 
 	ClassDB::bind_method(D_METHOD("update_activity"), &DiscordGameSDK::update_activity);
+	ClassDB::bind_method(D_METHOD("clear_activity"), &DiscordGameSDK::clear_activity);
 
 	ClassDB::bind_method(D_METHOD("set_activity_time_left", "stamp"), &DiscordGameSDK::set_activity_time_left);
 	ClassDB::bind_method(D_METHOD("get_activity_time_left"), &DiscordGameSDK::get_activity_time_left);
+
+	ClassDB::bind_method(D_METHOD("set_activity_time_elapsed", "stamp"), &DiscordGameSDK::set_activity_time_elapsed);
+	ClassDB::bind_method(D_METHOD("get_activity_time_elapsed"), &DiscordGameSDK::get_activity_time_elapsed);
 
 	ClassDB::bind_method(D_METHOD("set_activity_state", "state"), &DiscordGameSDK::set_activity_state);
 	ClassDB::bind_method(D_METHOD("get_activity_state"), &DiscordGameSDK::get_activity_state);
@@ -243,6 +271,7 @@ void DiscordGameSDK::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("lobby_created", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "lobby_id"), PropertyInfo(Variant::INT, "owner_id"), PropertyInfo(Variant::STRING, "secret"), PropertyInfo(Variant::BOOL, "is_locked")));
 	ADD_SIGNAL(MethodInfo("activity_updated", PropertyInfo(Variant::INT, "result")));
+	ADD_SIGNAL(MethodInfo("activity_cleared", PropertyInfo(Variant::INT, "result")));
 
 	ADD_SIGNAL(MethodInfo("lobby_type_updated", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "lobby_id")));
 	ADD_SIGNAL(MethodInfo("lobby_get_type", PropertyInfo(Variant::INT, "result"), PropertyInfo(Variant::INT, "lobby_id"), PropertyInfo(Variant::INT, "lobby_type")));
