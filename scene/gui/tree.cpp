@@ -457,19 +457,6 @@ TreeItem *TreeItem::get_next_visible(bool p_wrap) {
 	return current;
 }
 
-// don't use it
-void TreeItem::select_next_item(int p_column) {
-	if (next) {
-		tree->item_selected(p_column, next);
-	} else {
-		if (parent->children) {
-			tree->item_selected(p_column, parent->children);
-		} else {
-
-		}
-	}
-}
-
 void TreeItem::remove_child(TreeItem *p_item) {
 
 	ERR_FAIL_NULL(p_item);
@@ -829,7 +816,6 @@ void TreeItem::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_next_visible", "wrap"), &TreeItem::get_next_visible, DEFVAL(false));
 	ClassDB::bind_method(D_METHOD("get_prev_visible", "wrap"), &TreeItem::get_prev_visible, DEFVAL(false));
 
-	ClassDB::bind_method(D_METHOD("select_next_item", "column"), &TreeItem::select_next_item);
 	ClassDB::bind_method(D_METHOD("remove_child", "child"), &TreeItem::_remove_child);
 
 	ClassDB::bind_method(D_METHOD("set_selectable", "column", "selectable"), &TreeItem::set_selectable);

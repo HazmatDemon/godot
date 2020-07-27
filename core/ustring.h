@@ -280,7 +280,7 @@ public:
 	int count(const String &p_string, int p_from = 0, int p_to = 0) const;
 	int countn(const String &p_string, int p_from = 0, int p_to = 0) const;
 
-	String lcut(int p_pos);
+	String lcut(int p_pos); 
 	String left(int p_pos) const;
 	String right(int p_pos) const;
 	String dedent() const;

@@ -228,6 +228,11 @@ String InputEventWithModifiers::as_text() const {
 	return kc;
 }
 
+bool InputEventWithModifiers::has_modifiers() const {
+
+	return get_control() || get_alt() || get_shift() || get_metakey();
+}
+
 void InputEventWithModifiers::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_alt", "enable"), &InputEventWithModifiers::set_alt);
@@ -263,6 +268,7 @@ InputEventWithModifiers::InputEventWithModifiers() {
 	shift = false;
 	control = false;
 	meta = false;
+
 	action_pressed_on_modifier = true;
 }
 
@@ -326,16 +332,10 @@ String InputEventKey::as_text() const {
 	if (kc == String())
 		return kc;
 
-	if(has_modifiers()) {
+	if (has_modifiers()) {
 		kc = InputEventWithModifiers::as_text() + "+" + kc;
 	}
-
 	return kc;
-}
-
-bool InputEventWithModifiers::has_modifiers() const {
-
-	return get_control() || get_alt() || get_shift() || get_metakey();
 }
 
 bool InputEventKey::action_match(const Ref<InputEvent> &p_event, bool *p_pressed, float *p_strength, float p_deadzone) const {
@@ -346,13 +346,8 @@ bool InputEventKey::action_match(const Ref<InputEvent> &p_event, bool *p_pressed
 
 	uint32_t code = get_scancode_with_modifiers();
 	uint32_t event_code = key->get_scancode_with_modifiers();
-	bool match = true;
 
-	if (!is_action_pressed_on_modifier()) {
-		match = !key->has_modifiers(); // only activate action with modifers.
-	}
-	match = match && get_scancode() == key->get_scancode() && (!key->is_pressed() || (code & event_code) == code);
-
+	bool match = get_scancode() == key->get_scancode() && (!key->is_pressed() || (code & event_code) == code);
 	if (match) {
 		if (p_pressed != NULL)
 			*p_pressed = key->is_pressed();
@@ -371,6 +366,14 @@ bool InputEventKey::shortcut_match(const Ref<InputEvent> &p_event) const {
 	uint32_t code = get_scancode_with_modifiers();
 	uint32_t event_code = key->get_scancode_with_modifiers();
 
+	bool match = true;
+
+	if (!is_action_pressed_on_modifier()) {
+		match = !key->has_modifiers(); // only activate action with modifers.
+	}
+
+	match = match && get_scancode() == key->get_scancode() && (!key->is_pressed() || (code & event_code) == code);
+
 	return code == event_code;
 }
 
@@ -383,6 +386,7 @@ void InputEventKey::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_unicode", "unicode"), &InputEventKey::set_unicode);
 	ClassDB::bind_method(D_METHOD("get_unicode"), &InputEventKey::get_unicode);
+
 	ClassDB::bind_method(D_METHOD("has_modifiers"), &InputEventWithModifiers::has_modifiers);
 
 	ClassDB::bind_method(D_METHOD("set_echo", "echo"), &InputEventKey::set_echo);

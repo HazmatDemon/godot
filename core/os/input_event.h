@@ -248,13 +248,13 @@ public:
 	void set_command(bool p_enabled);
 	bool get_command() const;
 
+	void set_modifiers_from_event(const InputEventWithModifiers *event);
+
 	void set_action_pressed_on_modifier(bool p_enabled);
 	bool is_action_pressed_on_modifier() const;
 
 	bool has_modifiers() const;
 	virtual String as_text() const;
-
-	void set_modifiers_from_event(const InputEventWithModifiers *event);
 
 	InputEventWithModifiers();
 };

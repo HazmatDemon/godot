@@ -8,7 +8,7 @@
 
 #include "core/variant.h"
 
-class UTILS {
+struct UTILS {
 
 public:
     static String int_to_hex(int64_t number, int size);

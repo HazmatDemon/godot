@@ -241,8 +241,6 @@ public:
 	TreeItem *get_prev_visible(bool p_wrap = false);
 	TreeItem *get_next_visible(bool p_wrap = false);
 
-	void select_next_item(int p_column);
-
 	void remove_child(TreeItem *p_item);
 
 	void set_selectable(int p_column, bool p_selectable);

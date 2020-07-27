@@ -76,7 +76,7 @@ public:
 		ITEM_RAINBOW,
 		ITEM_META,
 		ITEM_CUSTOMFX,
-		ITEM_NONE
+		ITEM_NONE,
 	};
 
 protected:

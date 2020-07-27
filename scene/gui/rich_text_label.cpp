@@ -367,7 +367,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 					color = _find_color(text, p_base_color);
 					font_color_shadow = _find_color(text, p_font_color_shadow);
 					if (_find_underline(text) || (_find_meta(text, &meta) && underline_meta)) {
-								underline = true;
+						underline = true;
 					} else if (_find_strikethrough(text)) {
 						strikethrough = true;
 					}
