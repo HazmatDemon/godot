@@ -56,7 +56,9 @@ void InputMap::_bind_methods() {
 
 void InputMap::add_action(const StringName &p_action, float p_deadzone) {
 
-	ERR_FAIL_COND_MSG(input_map.has(p_action), "InputMap already has action '" + String(p_action) + "'.");
+	if (input_map.has(p_action)) {
+		return;
+	}
 	input_map[p_action] = Action();
 	static int last_id = 1;
 	input_map[p_action].id = last_id;
@@ -239,7 +241,6 @@ void InputMap::load_from_globals() {
 		Dictionary action = ProjectSettings::get_singleton()->get(pi.name);
 		float deadzone = action.has("deadzone") ? (float)action["deadzone"] : 0.5f;
 		Array events = action["events"];
-
 		add_action(name, deadzone);
 		for (int i = 0; i < events.size(); i++) {
 			Ref<InputEvent> event = events[i];

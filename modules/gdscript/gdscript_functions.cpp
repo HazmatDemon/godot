@@ -1501,8 +1501,12 @@ void GDScriptFunctions::call(Function p_func, const Variant **p_args, int p_arg_
 		case GET_INT: {
 			VALIDATE_ARG_COUNT(1);
 			if (p_args[0]->get_type() == Variant::STRING) {
-				String s = (String) *p_args[0];
-				r_ret = UTILS::hex_to_int(s);
+				String s = *p_args[0];
+				if (s.empty()) {
+					r_ret = 0;
+				} else {
+					r_ret = UTILS::hex_to_int(s);
+				}
 			} else {
 				r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
 				r_error.argument = 0;
@@ -1514,7 +1518,11 @@ void GDScriptFunctions::call(Function p_func, const Variant **p_args, int p_arg_
 			VALIDATE_ARG_COUNT(1);
 			if (p_args[0]->get_type() == Variant::STRING) {
 				String s = *p_args[0];
-				r_ret = UTILS::hex_to_float(s);
+				if (s.empty()) {
+					r_ret = 0.0;
+				} else {
+					r_ret = UTILS::hex_to_float(s);
+				}
 			} else {
 				r_error.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
 				r_error.argument = 0;
