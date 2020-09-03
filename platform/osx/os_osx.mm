@@ -1682,6 +1682,11 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 
 	[window_object makeKeyAndOrderFront:nil];
 
+	on_top = p_desired.always_on_top;
+	if (p_desired.always_on_top) {
+		[window_object setLevel:NSFloatingWindowLevel];
+	}
+
 	if (p_desired.fullscreen)
 		zoomed = true;
 
@@ -1873,8 +1878,12 @@ void OS_OSX::alert(const String &p_alert, const String &p_title) {
 	[window setAlertStyle:NSAlertStyleWarning];
 
 	// Display it, then release
+	id key_window = [[NSApplication sharedApplication] keyWindow];
 	[window runModal];
 	[window release];
+	if (key_window) {
+		[key_window makeKeyAndOrderFront:nil];
+	}
 }
 
 Error OS_OSX::open_dynamic_library(const String p_path, void *&p_library_handle, bool p_also_set_library_path) {
@@ -2497,7 +2506,11 @@ void OS_OSX::_update_window() {
 		[window_object setHidesOnDeactivate:YES];
 	} else {
 		// Reset these when our window is not a borderless window that covers up the screen
-		[window_object setLevel:NSNormalWindowLevel];
+		if (on_top) {
+			[window_object setLevel:NSFloatingWindowLevel];
+		} else {
+			[window_object setLevel:NSNormalWindowLevel];
+		}
 		[window_object setHidesOnDeactivate:NO];
 	}
 }
@@ -2732,6 +2745,8 @@ void OS_OSX::move_window_to_foreground() {
 }
 
 void OS_OSX::set_window_always_on_top(bool p_enabled) {
+	on_top = p_enabled;
+
 	if (is_window_always_on_top() == p_enabled)
 		return;
 
@@ -3135,7 +3150,7 @@ void OS_OSX::run() {
 			process_events(); // get rid of pending events
 			joypad_osx->process_joypads();
 
-			if (Main::iteration() == true) {
+			if (Main::iteration()) {
 				quit = true;
 			}
 		} @catch (NSException *exception) {
@@ -3316,6 +3331,7 @@ OS_OSX::OS_OSX() {
 	zoomed = false;
 	resizable = false;
 	window_focused = true;
+	on_top = false;
 
 	Vector<Logger *> loggers;
 	loggers.push_back(memnew(OSXTerminalLogger));
