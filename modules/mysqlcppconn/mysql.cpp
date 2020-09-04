@@ -17,66 +17,66 @@ bool MySQL::connection_close() {
 }
 
 //-------------- Query
-Array MySQL::query_fetch_dictionary(String p_SQLquery, bool return_string) {
+Array MySQL::query_fetch_dictionary(const String &p_SQLquery, bool return_string) {
 	return make_query(p_SQLquery, FUNC_DICT, emptyarray, return_string);
 }
 
-Array MySQL::query_fetch_array(String p_SQLquery, bool return_string) {
+Array MySQL::query_fetch_array(const String &p_SQLquery, bool return_string) {
 	return make_query(p_SQLquery, FUNC_ARRAY, emptyarray, return_string);
 }
 
-Array MySQL::query_get_columns_types(String p_SQLquery) {
+Array MySQL::query_get_columns_types(const String &p_SQLquery) {
 	return make_query(p_SQLquery, FUNC_TYPE, emptyarray, true);
 }
 
-Array MySQL::query_get_columns_names(String p_SQLquery) {
+Array MySQL::query_get_columns_names(const String &p_SQLquery) {
 	return make_query(p_SQLquery, FUNC_NAME, emptyarray, true);
 }
 
 //-------------- Prepared Query
-Array MySQL::prep_fetch_dictionary(String p_SQLquery, Array prep_val, bool return_string) {
+Array MySQL::prep_fetch_dictionary(const String &p_SQLquery, const Array &prep_val, bool return_string) {
 	return make_query(p_SQLquery, FUNC_DICT_PREP, prep_val, return_string);
 }
 
-Array MySQL::prep_fetch_array(String p_SQLquery, Array prep_val, bool return_string) {
+Array MySQL::prep_fetch_array(const String &p_SQLquery, const Array &prep_val, bool return_string) {
 	return make_query(p_SQLquery, FUNC_ARRAY_PREP, prep_val, return_string);
 }
 
-Array MySQL::prep_get_columns_types(String p_SQLquery, Array prep_val) {
+Array MySQL::prep_get_columns_types(const String &p_SQLquery, const Array &prep_val) {
 	return make_query(p_SQLquery, FUNC_TYPE_PREP, prep_val, true);
 }
 
-Array MySQL::prep_get_columns_names(String p_SQLquery, Array prep_val) {
+Array MySQL::prep_get_columns_names(const String &p_SQLquery, const Array &prep_val) {
 	return make_query(p_SQLquery, FUNC_NAME_PREP, prep_val, true);
 }
 
-void MySQL::set_credentials(String p_host, String p_user, String p_pass) {
+void MySQL::set_credentials(const String &p_host, const String &p_user, const String &p_pass) {
 	connection_properties["hostName"] = p_host.utf8().get_data();
 	connection_properties["userName"] = p_user.utf8().get_data();
 	connection_properties["password"] = p_pass.utf8().get_data();
 }
 
-void MySQL::set_client_options(String p_option, String p_value) {
+void MySQL::set_client_options(const String &p_option, const String &p_value) {
 	shared_ptr<sql::Connection> con(connection(ACT_DO));
 	sql::SQLString option = p_option.utf8().get_data();
 	sql::SQLString value = p_value.utf8().get_data();
 	con->setClientOption(option, value);
 }
 
-String MySQL::get_client_options(String p_option) {
+String MySQL::get_client_options(const String &p_option) {
 	shared_ptr<sql::Connection> con(connection(ACT_DO));
 	sql::SQLString option = p_option.utf8().get_data();
 	return sql2String(con->getClientOption(option));
 }
 
-int MySQL::query_execute(String p_SQLquery) {
+int MySQL::query_execute(const String &p_SQLquery) {
 	make_query(p_SQLquery, FUNC_EXEC, emptyarray, false);
 	int rows = afectedrows;
 	afectedrows = 0;
 	return rows;
 }
 
-int MySQL::prep_execute(String p_SQLquery, Array prep_val) {
+int MySQL::prep_execute(const String &p_SQLquery, const Array &prep_val) {
 	make_query(p_SQLquery, FUNC_EXEC_PREP, prep_val, false);
 	int rows = afectedrows;
 	afectedrows = 0;
@@ -93,7 +93,7 @@ String MySQL::get_database() {
 	}
 }
 
-void MySQL::set_database(String p_database) {
+void MySQL::set_database(const String &p_database) {
 	sql::SQLString database = p_database.utf8().get_data();
 	if (database != "") {
 		shared_ptr<sql::Connection> con(connection(ACT_DO));
@@ -105,7 +105,7 @@ void MySQL::set_database(String p_database) {
 	}
 }
 
-Array MySQL::make_query(String p_SQLquery, int type, Array prep_val, bool return_string) {
+Array MySQL::make_query(const String &p_SQLquery, int type, const Array &prep_val, bool return_string) {
 	sql::SQLString SQLquery = p_SQLquery.utf8().get_data();
 	Array ret;
 	shared_ptr<sql::Connection> con(connection(ACT_DO));
@@ -115,118 +115,233 @@ Array MySQL::make_query(String p_SQLquery, int type, Array prep_val, bool return
 	sql::ResultSetMetaData *res_meta;
 
 	try {
-		//----------- EXECUTE
-		if (type == FUNC_EXEC || type == FUNC_EXEC_PREP) { // ExecuteUpdate functions
-			if (type == FUNC_EXEC) {
-				stmt.reset(con->createStatement());
-				afectedrows = stmt->executeUpdate(SQLquery);
-			} else {
+		switch (type) {
+			case FUNC_NAME: {
 				prep_stmt.reset(con->prepareStatement(SQLquery));
 				determine_datatype(prep_stmt, prep_val);
-				afectedrows = prep_stmt->executeUpdate();
-			}
-		} else { // - Non executeUpdate functions
+				res.reset(prep_stmt->executeQuery());
+				res_meta = res->getMetaData();
 
-			if ((type == FUNC_TYPE || type == FUNC_TYPE || type == FUNC_DICT || type == FUNC_ARRAY)) { // Non prep statement
+				for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+					ret.push_back(sql2String(res_meta->getColumnName(i)));
+				}
+			} break;
+			case FUNC_TYPE: {
 				stmt.reset(con->createStatement());
 				res.reset(stmt->executeQuery(SQLquery));
 				res_meta = res->getMetaData();
-			} else { // Prep statement
-				prep_stmt.reset(con->prepareStatement(SQLquery));
-				determine_datatype(prep_stmt, prep_val);
-				res.reset(prep_stmt->executeQuery()); //Combo Arrays???
+
+				for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+					ret.push_back(sql2String(res_meta->getColumnTypeName(i)));
+				}
+			} break;
+			case FUNC_DICT: {
+				stmt.reset(con->createStatement());
+				res.reset(stmt->executeQuery(SQLquery));
 				res_meta = res->getMetaData();
-			}
-
-			//----------- NAME && TYPE
-			if (type == FUNC_NAME || type == FUNC_TYPE || type == FUNC_NAME_PREP || type == FUNC_TYPE_PREP) {
-				if (type == FUNC_TYPE || type == FUNC_TYPE_PREP) {
-					for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
-						ret.push_back(sql2String(res_meta->getColumnTypeName(i)));
-					}
-				} /*IF*/
-
-				if (type == FUNC_NAME || type == FUNC_NAME_PREP) {
-					for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
-						ret.push_back(sql2String(res_meta->getColumnName(i)));
-					}
-				} /*IF*/
-			}
-
-			//----------- DICT && ARRAY
-			if (type == FUNC_DICT || type == FUNC_ARRAY || type == FUNC_DICT_PREP || type == FUNC_ARRAY_PREP) {
 				while (res->next()) {
-					Array line;
 					Dictionary row;
 					for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
 
-						if ((type == FUNC_DICT || type == FUNC_DICT_PREP) && return_string) { // - return_string DICT
+						if (return_string) {
 							row[sql2String(res_meta->getColumnName(i))] = sql2String(res->getString(i));
-						}
-
-						else if ((type == FUNC_ARRAY || type == FUNC_ARRAY_PREP) && return_string) { // - return_string ARRAY
-							line.push_back((sql2String(res->getString(i))));
-						}
-
-						else if (!return_string) {
+						} else {
 							int g_type = res_meta->getColumnType(i);
 
-							//---------- INT
-							if (g_type == sql::DataType::BIT || g_type == sql::DataType::TINYINT || g_type == sql::DataType::SMALLINT || g_type == sql::DataType::MEDIUMINT || g_type == sql::DataType::INTEGER || g_type == sql::DataType::BIGINT) {
-								if (type == FUNC_DICT || type == FUNC_DICT_PREP) {
+							switch (g_type) {
+								case sql::DataType::BIT:
+								case sql::DataType::TINYINT:
+								case sql::DataType::SMALLINT:
+								case sql::DataType::MEDIUMINT:
+								case sql::DataType::INTEGER:
+								case sql::DataType::BIGINT: {
 									row[sql2String(res_meta->getColumnName(i))] = res->getInt(i);
-								} else {
-									line.push_back(res->getInt(i));
-								}
-							}
-							//----------  FLOAT
-
-							else if (g_type == sql::DataType::REAL || g_type == sql::DataType::DOUBLE || g_type == sql::DataType::DECIMAL || g_type == sql::DataType::NUMERIC) {
-								float floteando = res->getDouble(i);
-								if (type == FUNC_DICT || type == FUNC_DICT_PREP) {
-									row[sql2String(res_meta->getColumnName(i))] = floteando;
-								} else {
-									line.push_back(floteando);
-								}
-							}
-
-							//----------  TIME
-							else if (g_type == sql::DataType::DATE || g_type == sql::DataType::TIME || g_type == sql::DataType::TIMESTAMP || g_type == sql::DataType::YEAR) {
-								/*	It should return time information as a dictionary when calling "fetch_dictionary", but if the sequence of the  
-								data be modified (using TIME_FORMAT or DATE_FORMAT for exemple), it will return the dictionary fields with wrong names. 
-								so I prefer return the data as an array.	*/
-
-								if (type == FUNC_DICT || type == FUNC_DICT_PREP) {
+								} break;
+								case sql::DataType::REAL:
+								case sql::DataType::DOUBLE:
+								case sql::DataType::DECIMAL:
+								case sql::DataType::NUMERIC: {
+									row[sql2String(res_meta->getColumnName(i))] = (double) res->getDouble(i);
+								} break;
+								case sql::DataType::DATE:
+								case sql::DataType::TIME:
+								case sql::DataType::TIMESTAMP:
+								case sql::DataType::YEAR: {
 									row[sql2String(res_meta->getColumnName(i))] = format_time(((sql2String(res->getString(i))).utf8().get_data()), false);
-								} else {
-									line.push_back(format_time(((sql2String(res->getString(i))).utf8().get_data()), false));
-								}
-							}
-
-							//----------  STRING
-							else { // - ANY OTHER DATATYPE non listed above gonna be returned as STRING (Including char types, of course).
-								if (type == FUNC_DICT || type == FUNC_DICT_PREP) {
+								} break;
+								default: {
 									row[sql2String(res_meta->getColumnName(i))] = sql2String(res->getString(i));
-								} else {
-									line.push_back(sql2String(res->getString(i)));
-								}
+								} break;
 							}
-						} // if  !return_string
-					} // for
-
-					if (type == FUNC_DICT || type == FUNC_DICT_PREP) {
-						ret.push_back(row);
-					} else {
-						ret.push_back(line);
+						}
 					}
+					ret.push_back(row);
+				}
+			} break;
+			case FUNC_ARRAY: {
+				stmt.reset(con->createStatement());
+				res.reset(stmt->executeQuery(SQLquery));
+				res_meta = res->getMetaData();
+				while (res->next()) {
+					Array line;
+					for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+						
+						if (return_string) {
+							line.push_back((sql2String(res->getString(i))));
+						} else {
+							int g_type = res_meta->getColumnType(i);
 
-				} /// while
+							switch (g_type) {
+								case sql::DataType::BIT:
+								case sql::DataType::TINYINT:
+								case sql::DataType::SMALLINT:
+								case sql::DataType::MEDIUMINT:
+								case sql::DataType::INTEGER:
+								case sql::DataType::BIGINT: {
+									line.push_back(res->getInt(i));
+								} break;
+								case sql::DataType::REAL:
+								case sql::DataType::DOUBLE:
+								case sql::DataType::DECIMAL:
+								case sql::DataType::NUMERIC: {
+									line.push_back((double)res->getDouble(i));
+								} break;
+								case sql::DataType::DATE:
+								case sql::DataType::TIME:
+								case sql::DataType::TIMESTAMP:
+								case sql::DataType::YEAR: {
+									line.push_back(format_time(((sql2String(res->getString(i))).utf8().get_data()), false));
+								} break;
+								default: {
+									line.push_back(sql2String(res->getString(i)));
+								} break;
+							}
+						}
+					}
+					ret.push_back(line);
+				}
+			} break;
+			case FUNC_EXEC: {
+				stmt.reset(con->createStatement());
+				afectedrows = stmt->executeUpdate(SQLquery);
+			} break;
+			case FUNC_NAME_PREP: {
+				prep_stmt.reset(con->prepareStatement(SQLquery));
+				determine_datatype(prep_stmt, prep_val);
+				res.reset(prep_stmt->executeQuery());
+				res_meta = res->getMetaData();
 
-			} // if FUNC = DICT || ARRAY || DICT_PREP || ARRAY_PREP
+				for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+					ret.push_back(sql2String(res_meta->getColumnName(i)));
+				}
+			} break;
+			case FUNC_TYPE_PREP: {
+				prep_stmt.reset(con->prepareStatement(SQLquery));
+				determine_datatype(prep_stmt, prep_val);
+				res.reset(prep_stmt->executeQuery());
+				res_meta = res->getMetaData();
 
-		} // - Non executeUpdate functions
+				for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+					ret.push_back(sql2String(res_meta->getColumnTypeName(i)));
+				}
+			} break;
+			case FUNC_DICT_PREP: {
+				prep_stmt.reset(con->prepareStatement(SQLquery));
+				determine_datatype(prep_stmt, prep_val);
+				res.reset(prep_stmt->executeQuery());
+				res_meta = res->getMetaData();
 
-	} //-Try
+				while (res->next()) {
+					Dictionary row;
+					for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+
+						if (return_string) {
+							row[sql2String(res_meta->getColumnName(i))] = sql2String(res->getString(i));
+						} else {
+							int g_type = res_meta->getColumnType(i);
+
+							switch (g_type) {
+								case sql::DataType::BIT:
+								case sql::DataType::TINYINT:
+								case sql::DataType::SMALLINT:
+								case sql::DataType::MEDIUMINT:
+								case sql::DataType::INTEGER:
+								case sql::DataType::BIGINT: {
+									row[sql2String(res_meta->getColumnName(i))] = res->getInt(i);
+								} break;
+								case sql::DataType::REAL:
+								case sql::DataType::DOUBLE:
+								case sql::DataType::DECIMAL:
+								case sql::DataType::NUMERIC: {
+									row[sql2String(res_meta->getColumnName(i))] = (double)res->getDouble(i);
+								} break;
+								case sql::DataType::DATE:
+								case sql::DataType::TIME:
+								case sql::DataType::TIMESTAMP:
+								case sql::DataType::YEAR: {
+									row[sql2String(res_meta->getColumnName(i))] = format_time(((sql2String(res->getString(i))).utf8().get_data()), false);
+								} break;
+								default: {
+									row[sql2String(res_meta->getColumnName(i))] = sql2String(res->getString(i));
+								} break;
+							}
+						}
+					}
+					ret.push_back(row);
+				}
+			} break;
+			case FUNC_ARRAY_PREP: {
+				prep_stmt.reset(con->prepareStatement(SQLquery));
+				determine_datatype(prep_stmt, prep_val);
+				res.reset(prep_stmt->executeQuery());
+				res_meta = res->getMetaData();
+				while (res->next()) {
+					Array line;
+					for (uint8_t i = 1; i <= res_meta->getColumnCount(); i++) {
+						
+						if (return_string) {
+							line.push_back((sql2String(res->getString(i))));
+						} else {
+							int g_type = res_meta->getColumnType(i);
+
+							switch (g_type) {
+								case sql::DataType::BIT:
+								case sql::DataType::TINYINT:
+								case sql::DataType::SMALLINT:
+								case sql::DataType::MEDIUMINT:
+								case sql::DataType::INTEGER:
+								case sql::DataType::BIGINT: {
+									line.push_back(res->getInt(i));
+								} break;
+								case sql::DataType::REAL:
+								case sql::DataType::DOUBLE:
+								case sql::DataType::DECIMAL:
+								case sql::DataType::NUMERIC: {
+									line.push_back((double)res->getDouble(i));
+								} break;
+								case sql::DataType::DATE:
+								case sql::DataType::TIME:
+								case sql::DataType::TIMESTAMP:
+								case sql::DataType::YEAR: {
+									line.push_back(format_time(((sql2String(res->getString(i))).utf8().get_data()), false));
+								} break;
+								default: {
+									line.push_back(sql2String(res->getString(i)));
+								} break;
+							}
+						}
+					}
+					ret.push_back(line);
+				}
+			} break;
+			case FUNC_EXEC_PREP: {
+				prep_stmt.reset(con->prepareStatement(SQLquery));
+				determine_datatype(prep_stmt, prep_val);
+				afectedrows = prep_stmt->executeUpdate();
+			} break;
+		}
+
+	}
 
 	catch (sql::SQLException &e) {
 		print_SQLException(e);
@@ -274,105 +389,97 @@ bool MySQL::check(int what) {
 	return false;
 }
 
-String MySQL::sql2String(sql::SQLString p_str) {
+String MySQL::sql2String(const sql::SQLString &p_str) {
 	const char *c = p_str.c_str();
 	String str = String::utf8((char *)c);
 	return str;
 }
 
-void MySQL::determine_datatype(std::shared_ptr<sql::PreparedStatement> prep_stmt, Array prep_val) {
-	for (int i = 0; i <= (prep_val.size() - 1); i++) { // Determine datatype
+void MySQL::determine_datatype(std::shared_ptr<sql::PreparedStatement> prep_stmt, const Array &prep_val) {
+	for (int i = 0; i < prep_val.size(); i++) {
 		int d = i + 1;
 
-		if (prep_val[i].get_type() == Variant::Variant::NIL) {
-			prep_stmt->setNull(d, sql::DataType::SQLNULL);
-		}
-
-		else if (prep_val[i].get_type() == Variant::Variant::BOOL) {
-			prep_stmt->setBoolean(d, bool(prep_val[i]));
-		}
-
-		else if (prep_val[i].get_type() == Variant::Variant::INT) {
-			prep_stmt->setInt(d, int(prep_val[i]));
-		}
-#ifdef GODOT4
-		else if (prep_val[i].get_type() == Variant::Variant::FLOAT) {
-			prep_stmt->setDouble(d, float(prep_val[i]));
-		}
-#else
-		else if (prep_val[i].get_type() == Variant::Variant::REAL) {
-			prep_stmt->setDouble(d, float(prep_val[i]));
-		}
-#endif
-		else { // - Gonna handle any other Godot datatype as string
-			String stri = String(prep_val[i]);
-			sql::SQLString caracteres = stri.utf8().get_data();
-			if (is_mysql_time(stri)) { // -- If the string has the mysql time type format, this gonna be handle as Date and Time types
-				prep_stmt->setDateTime(d, caracteres);
-			} else {
-				prep_stmt->setString(d, caracteres);
+		switch (prep_val[i].get_type()) {
+			case Variant::Type::Nil: {
+				prep_stmt->setNull(d, sql::DataType::SQLNULL);
+			} break;
+			case Variant::Type::BOOL: {
+				prep_stmt->setBoolean(d, bool(prep_val[i]));
+			} break;
+			case Variant::Type::INT: {
+				prep_stmt->setInt(d, int(prep_val[i]));
+			} break;
+			case Variant::Type::REAL: {
+				prep_stmt->setDouble(d, float(prep_val[i]));
+			} break;
+			default: {
+				String stri = String(prep_val[i]);
+				sql::SQLString caracteres = stri.utf8().get_data();
+				if (is_mysql_time(stri)) { // -- If the string has the mysql time type format, this gonna be handle as Date and Time types
+					prep_stmt->setDateTime(d, caracteres);
+				} else {
+					prep_stmt->setString(d, caracteres);
+				}
 			}
 		}
 	}
 }
 
-Array MySQL::format_time(String str, bool return_string) {
+Array MySQL::format_time(const String &str, bool return_string) {
 	Array datando;
 	string strss = str.utf8().get_data();
 	char seps[] = ": -";
 	char *token;
-	token = strtok(&strss[0], seps);
+	char *next_token;
+	token = strtok_s(&strss[0], seps, &next_token);
 	while (token != NULL) {
 		if (return_string) {
 			datando.push_back(String(token)); //--As String
 		} else {
 			datando.push_back(atoi(token)); //--As Data
 		}
-		token = strtok(NULL, seps);
+		token = strtok_s(NULL, seps, &next_token);
 	}
 	return datando;
 }
 
-bool MySQL::is_mysql_time(String time) {
+bool MySQL::is_mysql_time(const String &time) {
 	string s_time = time.utf8().get_data(); ///Impo
 	int len = time.length();
 	if (s_time.find_first_not_of("0123456789:- ") == string::npos) {
 
-		// - 0000
-		if (len == 4) {
-			if (s_time.find_first_not_of("0123456789") == string::npos) {
-				return true;
-			}
-		}
-
-		// - 00:00:00
-		else if (len == 8) {
-			if (time[2] == ':' && time[5] == ':') {
-				Array arr_time = format_time(time, true);
-				if (arr_time.size() == 3 && String(arr_time[2]).length() == 2) {
+		switch (len) {
+			case 4: {
+				if (s_time.find_first_not_of("0123456789") == string::npos) {
 					return true;
 				}
-			}
-		}
-
-		// - 0000-00-00
-		else if (len == 10) {
-			if (time[4] == '-' && time[7] == '-') {
-				Array arr_time = format_time(time, true);
-				if (arr_time.size() == 3 && String(arr_time[2]).length() == 2) {
-					return true;
+			} break;
+			case 8: {
+				if (time[2] == ':' && time[5] == ':') {
+					Array arr_time = format_time(time, true);
+					if (arr_time.size() == 3 && String(arr_time[2]).length() == 2) {
+						return true;
+					}
 				}
-			}
-		}
-
-		// - 0000-00-00 00:00:00
-		else if (len == 19) {
-			if (time[4] == '-' && time[7] == '-' && time[13] == ':' && time[16] == ':' && time[10] == ' ') {
-				Array arr_time = format_time(time, true);
-				if (arr_time.size() == 6 && String(arr_time[2]).length() == 2) {
-					return true;
+			} break;
+			case 10: {
+				if (time[4] == '-' && time[7] == '-') {
+					Array arr_time = format_time(time, true);
+					if (arr_time.size() == 3 && String(arr_time[2]).length() == 2) {
+						return true;
+					}
 				}
-			}
+			} break;
+			case 19: {
+				if (time[4] == '-' && time[7] == '-' && time[13] == ':' && time[16] == ':' && time[10] == ' ') {
+					Array arr_time = format_time(time, true);
+					if (arr_time.size() == 6 && String(arr_time[2]).length() == 2) {
+						return true;
+					}
+				}
+			} break;
+			default:
+				break;
 		}
 	}
 	return false;
