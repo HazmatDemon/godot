@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  FullScreenGodotApp.java                                              */
+/*  gl_view_gesture_recognizer.h                                         */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,53 +28,27 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-package org.godotengine.godot;
+// GLViewGestureRecognizer allows iOS gestures to work currectly by
+// emulating UIScrollView's UIScrollViewDelayedTouchesBeganGestureRecognizer.
+// It catches all gestures incoming to UIView and delays them for 150ms
+// (the same value used by UIScrollViewDelayedTouchesBeganGestureRecognizer)
+// If touch cancelation or end message is fired it fires delayed
+// begin touch immediately as well as last touch signal
 
-import android.content.Intent;
-import android.os.Bundle;
-import android.view.KeyEvent;
+#import <UIKit/UIKit.h>
 
-import androidx.fragment.app.FragmentActivity;
+@interface GLViewGestureRecognizer : UIGestureRecognizer {
+@private
 
-/**
- * Base activity for Android apps intending to use Godot as the primary and only screen.
- *
- * It's also a reference implementation for how to setup and use the {@link Godot} fragment
- * within an Android app.
- */
-public abstract class FullScreenGodotApp extends FragmentActivity {
+	// Timer used to delay begin touch message.
+	// Should work as simple emulation of UIDelayedAction
+	NSTimer *delayTimer;
 
-	protected Godot godotFragment;
-
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.godot_app_layout);
-		godotFragment = new Godot();
-		getSupportFragmentManager().beginTransaction().replace(R.id.godot_fragment_container, godotFragment).setPrimaryNavigationFragment(godotFragment).commitNowAllowingStateLoss();
-	}
-
-	@Override
-	public void onNewIntent(Intent intent) {
-		if (godotFragment != null) {
-			godotFragment.onNewIntent(intent);
-		}
-	}
-
-	@Override
-	public void onBackPressed() {
-		if (godotFragment != null) {
-			godotFragment.onBackPressed();
-		} else {
-			super.onBackPressed();
-		}
-	}
-
-	@Override
-	public boolean onKeyMultiple(final int inKeyCode, int repeatCount, KeyEvent event) {
-		if (godotFragment != null && godotFragment.onKeyMultiple(inKeyCode, repeatCount, event)) {
-			return true;
-		}
-		return super.onKeyMultiple(inKeyCode, repeatCount, event);
-	}
+	// Delayed touch parameters
+	NSSet *delayedTouches;
+	UIEvent *delayedEvent;
 }
+
+- (instancetype)init;
+
+@end
