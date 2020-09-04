@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+Import("env")
+
+
+if env["platform"] in ["linuxbsd", "linux", "bsd", "x11", "server"]:
+	env.Append(LIBPATH=["/usr/lib"])	# Path to libraries
+	env.Append(CPPPATH=["/usr/include/mysql-cppconn-8/jdbc"])
+if env["platform"] in ["windows", "osx", "UWP"]:   # Boost library are required.
+	# Enter with the path to the connector here.
+	env.Append(LIBPATH=["C:/Users/server/mysql-connector-c++/include/jdbc/"])
+	env.Append(CPPPATH=["C:/Users/server/mysql-connector-c++/include/jdbc/"])
+	
+	# Enter with the path to boost library here.
+	env.Append(LIBPATH=["C:/Users/server/boost/"])
+	env.Append(CPPPATH=["C:/Users/server/boost/"])
+	
+	# Enter with the path to file "libmysqlcppconn.windows.tools.64.lib" here -- Not sure if it required on OSX
+	env.Append(LIBPATH=["#modules/mysqlcppconn/lib"])
+
+env.add_source_files(env.modules_sources, "*.cpp")
+
+env.Append(LIBS=["mysqlcppconn"])
+
+
+
+
+
+
+
+
+

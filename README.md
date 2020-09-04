@@ -6,6 +6,43 @@
   </a>
 </p>
 
+## Note:
+
+This branch is custom version of Godot 3.2. It is meant for [Fairy Dust Server](https://github.com/HazmatDemon/fairy-dust-server).
+
+## Building
+
+### Linux
+
+First you need to go through `Requirements` section on [Compiling for X11](https://docs.godotengine.org/en/stable/development/compiling/compiling_for_x11.html).
+Don't install gcc, install clang and lld (resulting binaries will be faster).
+
+Then you need to install libmysqlcppconn-dev (ubuntu/debian and for arch from AUR).
+
+To build release export templates use:
+
+```./letr.sh```
+
+To build dedicated server binary use:
+
+```./lsr.sh```
+
+### Windows
+
+* Download [MySQL C++ Connector](https://dev.mysql.com/downloads/connector/cpp/) and [Boost Library](https://dl.bintray.com/boostorg/master/) zip archives
+* Put them wherever you want (beside from System32 directory!)
+* Alter the correct paths to those libraries in mysqlcppconn module's [SCsub](https://github.com/HazmatDemon/godot/blob/3.2-server/modules/mysqlcppconn/SCsub)
+* Find a file called `mysqlcppconn.lib` in MySQL C++ Connector directory
+* Rename it to `mysqlcppconn.windows.opt.tools.64.lib` and place it `modules/mysqlcppconn/lib` directory
+
+Now you are ready build Godot Editor for windows!
+
+Just run:
+
+```wer.bat```
+
+## Godot Engine
+
 ## 2D and 3D cross-platform game engine
 
 **[Godot Engine](https://godotengine.org) is a feature-packed, cross-platform

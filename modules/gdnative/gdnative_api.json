@@ -5641,6 +5641,14 @@
         ]
       },
       {
+        "name": "godot_string_lcut",
+        "return_type": "godot_string",
+        "arguments": [
+          ["godot_string *", "p_self"],
+          ["godot_int", "p_pos"]
+        ]
+      },
+      {
         "name": "godot_string_left",
         "return_type": "godot_string",
         "arguments": [
